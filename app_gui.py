@@ -30,10 +30,21 @@ class AppGui(QVBoxLayout):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(5)
 
+        # Center widget with image viewer
+        self.center_layout = QVBoxLayout()
+
+        # Top bar with image name and resolution and qcombobox with annotation types
+        self.top_bar = QHBoxLayout()
+        self.top_bar.setContentsMargins(0, 0, 0, 0)
+        self.top_bar.setSpacing(5)
+
+        # Image Viewer
         self.image_view = ImageView()
         self.image_view.label_added.connect(self.update_labels_list)
         self.image_view.updated_labels.connect(self.update_labels_list)
         self.image_view.scene().selectionChanged.connect(self.update_selection)
+
+        self.center_layout.addWidget(self.image_view)
 
         self.right_panel = QVBoxLayout()
 
@@ -56,7 +67,7 @@ class AppGui(QVBoxLayout):
         self.right_panel.addWidget(self.images_label)
         self.right_panel.addWidget(self.images_list)
 
-        self.main_layout.addWidget(self.image_view)
+        self.main_layout.addLayout(self.center_layout)
         self.main_layout.addLayout(self.right_panel)
         self.images_widget.setLayout(self.main_layout)
 
@@ -87,15 +98,8 @@ class AppGui(QVBoxLayout):
 
         # Create toolbar
         self.tools_toolbar = QToolBar("Tools")
-        self.tools_toolbar.setIconSize(QSize(24, 24))
+        self.tools_toolbar.setIconSize(QSize(18, 18))
         self.tools_toolbar.setMovable(False)
-        self.tools_toolbar.setStyleSheet(
-            "QToolBar {border: none; spacing: 10px; padding: 5px}"
-            "QToolButton {background-color: #222222; border: none; color: #ffffff;}"
-            "QToolButton:hover {background-color: #333;}"
-            "QToolButton:checked {background-color: #444;}"
-            "QToolButton:pressed {background-color: #444;}"
-        )
 
         self.select_button = QAction(QIcon("icons/select.png"), "Select (S)", self)
         self.select_button.triggered.connect(self.set_select_mode)

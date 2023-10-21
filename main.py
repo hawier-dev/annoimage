@@ -1,10 +1,11 @@
 import sys
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPalette, QColor
+from PySide6.QtGui import QPalette, QColor, QFontDatabase
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
 
 from app_gui import AppGui
+from colors import *
 
 
 class MyApp(QMainWindow):
@@ -22,9 +23,9 @@ class MyApp(QMainWindow):
 
 def create_palette():
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(33, 33, 33))
-    palette.setColor(QPalette.WindowText, Qt.white)
-    palette.setColor(QPalette.Base, QColor(22, 22, 22))
+    palette.setColor(QPalette.Window, QColor(*hex_to_rgb(BACKGROUND_COLOR)))
+    palette.setColor(QPalette.WindowText, QColor(*hex_to_rgb(FOREGROUND_COLOR)))
+    palette.setColor(QPalette.Base, QColor(*hex_to_rgb(SURFACE_COLOR)))
     palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
     palette.setColor(QPalette.ToolTipBase, Qt.black)
     palette.setColor(QPalette.ToolTipText, Qt.white)
@@ -41,13 +42,20 @@ def create_palette():
 
 def main():
     app = QApplication()
+    QFontDatabase.addApplicationFont('fonts/Inter-Medium.ttf')
     app.setPalette(create_palette())
     app.setStyleSheet(
         "*:focus {outline: none;} "
+        "* {font-family: Inter; font-size: 12px;}"
         "QWidget {border: 0px solid black;} "
-        "QListWidget::item { height: 30px; background-color: #222222; margin: 1px;}"
-        "QListWidget::item:selected { background-color: #444; color: #ffffff;}"
+        "QListWidget::item { height: 30px; background-color: #444; margin: 1px;}"
+        "QListWidget::item:selected { background-color: #666; color: #ffffff;}"
         "QListWidget::item:focus {outline: none;}"
+        "QToolBar {border: none; margin: 0px; padding: 0px; spacing: 0px;}"
+        "QToolButton {background-color: " + f"{BACKGROUND_COLOR}" + "; border: none; color: #ffffff; padding: 10px;}"
+        "QToolButton:hover {background-color:" + f"{HOVER_COLOR}" + ";}"
+        "QToolButton:checked {background-color: " + f"{PRIMARY_COLOR}" + ";}"
+        "QToolButton:pressed {background-color: " + f"{PRIMARY_COLOR}" + ";}"
     )
     window = MyApp()
     window.show()
