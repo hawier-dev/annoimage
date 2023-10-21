@@ -150,18 +150,6 @@ class AppGui(QVBoxLayout):
         return super(QVBoxLayout, self).eventFilter(source, event)
 
     def setup_shortcuts(self):
-        # select_shortcut = QShortcut(QKeySequence(Qt.Key_S), self.main_window)
-        # select_shortcut.activated.connect(self.set_select_mode)
-        #
-        # rectangle_shortcut = QShortcut(QKeySequence(Qt.Key_R), self.main_window)
-        # rectangle_shortcut.activated.connect(self.set_rect_selection)
-        #
-        # previous_shortcut = QShortcut(QKeySequence(Qt.Key_Left), self.main_window)
-        # previous_shortcut.activated.connect(self.previous_image)
-        #
-        # next_shortcut = QShortcut(QKeySequence(Qt.Key_Right), self.main_window)
-        # next_shortcut.activated.connect(self.next_image)
-        #
         delete_shortcut = QShortcut(QKeySequence(Qt.Key_Delete), self.main_window)
         delete_shortcut.activated.connect(self.delete_selected_labels)
 
