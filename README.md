@@ -1,7 +1,7 @@
 <h1 align="center">AnnoImage</h1>
 <p align="center">Image annotation tool</p>
-<p align="center">AnnoImage is a image annotation tool that allows you to annotate
-images for machine learning.</p>
+<p align="center">AnnoImage is a image annotation tool that allows you to annotate images for object detection.</p>
+<p align="center">It is written in <b>Python</b> and uses <b>PySide6</b> for the GUI.</p>
 
 <br>
 <p align="center">Supported annotation types:</p>
