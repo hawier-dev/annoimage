@@ -2,15 +2,16 @@ import os
 
 from PySide6 import QtWidgets
 from PySide6.QtCore import QSize, Qt, QEvent
-from PySide6.QtGui import QAction, QIcon, QShortcut, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QShortcut, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QWidget,
     QFileDialog,
-    QToolBar, QListWidget, QLabel, QMenuBar,
+    QToolBar, QListWidget, QLabel, QPushButton, QSplitter, QStatusBar,
 )
 
+from constants import *
 from widgets.image_view import ImageView
 
 
@@ -22,84 +23,42 @@ class AppGui(QVBoxLayout):
 
         self.setContentsMargins(0, 0, 0, 0)
 
-        # Widget with image view
-        self.images_widget = QWidget()
-        self.images_widget.setContentsMargins(0, 0, 0, 0)
+        # Top bar with app name and qcombobox with annotation types
+        self.top_bar = QWidget()
+        self.top_bar.setStyleSheet("padding: 5px;")
+        self.top_bar_layout = QHBoxLayout()
+        self.top_bar_layout.setContentsMargins(0, 0, 0, 0)
 
+        self.app_logo = QLabel()
+        self.app_logo.setPixmap(QPixmap("icons/annoimage.png").scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        self.app_name = QLabel(TITLE)
+        self.app_name.setStyleSheet("font-size: 15px;")
+
+        self.open_directory_button = QPushButton("Open directory")
+        self.open_directory_button.clicked.connect(self.open_directory)
+
+        self.open_file_button = QPushButton("Open file")
+        self.open_file_button.clicked.connect(self.open_file)
+
+        self.top_bar_layout.addWidget(self.app_logo)
+        self.top_bar_layout.addWidget(self.app_name)
+        self.top_bar_layout.addStretch()
+        self.top_bar_layout.addWidget(self.open_directory_button)
+        self.top_bar_layout.addWidget(self.open_file_button)
+
+        self.top_bar.setLayout(self.top_bar_layout)
+
+        # Main widget with image viewer and toolbar
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(5)
 
-        # Center widget with image viewer
-        self.center_layout = QVBoxLayout()
-
-        # Top bar with image name and resolution and qcombobox with annotation types
-        self.top_bar = QHBoxLayout()
-        self.top_bar.setContentsMargins(0, 0, 0, 0)
-        self.top_bar.setSpacing(5)
-
-        # Image Viewer
-        self.image_view = ImageView()
-        self.image_view.label_added.connect(self.update_labels_list)
-        self.image_view.updated_labels.connect(self.update_labels_list)
-        self.image_view.scene().selectionChanged.connect(self.update_selection)
-
-        self.center_layout.addWidget(self.image_view)
-
-        self.right_panel = QVBoxLayout()
-
-        self.labels_label = QLabel("Labels")
-        self.labels_list = QListWidget()
-        self.labels_list.setMaximumWidth(150)
-        self.labels_list.setSelectionMode(QListWidget.ExtendedSelection)
-        self.labels_list.itemSelectionChanged.connect(self.select_labels_from_list)
-        self.labels_list.installEventFilter(self)
-
-        self.images_label = QLabel("Images")
-        self.images_list = QListWidget()
-        self.images_list.setMaximumWidth(150)
-        self.images_list.doubleClicked.connect(self.load_image)
-        self.images_list.installEventFilter(self)
-
-        self.right_panel.addWidget(self.labels_label)
-        self.right_panel.addWidget(self.labels_list)
-        self.right_panel.addSpacing(10)
-        self.right_panel.addWidget(self.images_label)
-        self.right_panel.addWidget(self.images_list)
-
-        self.main_layout.addLayout(self.center_layout)
-        self.main_layout.addLayout(self.right_panel)
-        self.images_widget.setLayout(self.main_layout)
-
-        # self.status_bar = QStatusBar()
-        # self.version = QLabel("Image labeler v1.0")
-        # self.resolution_status = QLabel("None")
-        # self.status_bar.addWidget(self.version)
-        # self.status_bar.addWidget(self.resolution_status)
-        #
-        # self.main_window.setStatusBar(self.status_bar)
-
-        self.addWidget(self.images_widget)
-
-        # Create menu bar with file menu
-        self.menu_bar = QMenuBar()
-
-        self.file_menu = self.menu_bar.addMenu("File")
-        self.directory_action = QAction("Open folder", self)
-        self.directory_action.triggered.connect(self.open_directory)
-
-        self.file_action = QAction("Open file", self)
-        self.file_action.triggered.connect(self.open_file)
-
-        self.file_menu.addAction(self.directory_action)
-        self.file_menu.addAction(self.file_action)
-
-        self.main_window.setMenuBar(self.menu_bar)
-
-        # Create toolbar
-        self.tools_toolbar = QToolBar("Tools")
-        self.tools_toolbar.setIconSize(QSize(18, 18))
-        self.tools_toolbar.setMovable(False)
+        # Left toolbar
+        self.left_toolbar = QToolBar("Tools")
+        self.left_toolbar.setIconSize(QSize(18, 18))
+        self.left_toolbar.setMovable(False)
+        self.left_toolbar.setOrientation(Qt.Vertical)
 
         self.select_button = QAction(QIcon("icons/select.png"), "Select (S)", self)
         self.select_button.triggered.connect(self.set_select_mode)
@@ -124,13 +83,57 @@ class AppGui(QVBoxLayout):
         self.save_button.triggered.connect(self.save_labeled_image)
         self.save_button.setShortcut("CTRL+S")
 
-        self.tools_toolbar.addAction(self.select_button)
-        self.tools_toolbar.addAction(self.rectangle_button)
-        self.tools_toolbar.addAction(self.previous_button)
-        self.tools_toolbar.addAction(self.next_button)
-        self.tools_toolbar.addAction(self.save_button)
+        self.left_toolbar.addAction(self.select_button)
+        self.left_toolbar.addAction(self.rectangle_button)
+        self.left_toolbar.addAction(self.previous_button)
+        self.left_toolbar.addAction(self.next_button)
+        self.left_toolbar.addAction(self.save_button)
 
-        self.main_window.addToolBar(Qt.LeftToolBarArea, self.tools_toolbar)
+        # Center widget with image viewer
+        self.center_layout = QVBoxLayout()
+
+        self.image_view = ImageView()
+        self.image_view.label_added.connect(self.update_labels_list)
+        self.image_view.updated_labels.connect(self.update_labels_list)
+        self.image_view.scene().selectionChanged.connect(self.update_selection)
+
+        self.center_layout.addWidget(self.image_view)
+
+        self.right_panel_layout = QVBoxLayout()
+
+        self.labels_label = QLabel("Labels")
+        self.labels_list = QListWidget()
+        self.labels_list.setMaximumWidth(150)
+        self.labels_list.setSelectionMode(QListWidget.ExtendedSelection)
+        self.labels_list.itemSelectionChanged.connect(self.select_labels_from_list)
+        self.labels_list.installEventFilter(self)
+
+        self.images_label = QLabel("Images")
+        self.images_list = QListWidget()
+        self.images_list.setMaximumWidth(150)
+        self.images_list.doubleClicked.connect(self.load_image)
+        self.images_list.installEventFilter(self)
+
+        self.right_panel_layout.addWidget(self.labels_label)
+        self.right_panel_layout.addWidget(self.labels_list)
+        self.right_panel_layout.addSpacing(10)
+        self.right_panel_layout.addWidget(self.images_label)
+        self.right_panel_layout.addWidget(self.images_list)
+
+        self.main_layout.addWidget(self.left_toolbar)
+        self.main_layout.addLayout(self.center_layout)
+        self.main_layout.addLayout(self.right_panel_layout)
+
+        self.status_bar = QStatusBar()
+        self.version = QLabel(f"{TITLE} {VERSION}")
+        self.status_bar.addWidget(self.version)
+
+        self.main_window.setStatusBar(self.status_bar)
+
+        self.addWidget(self.top_bar)
+        self.addLayout(self.main_layout)
+
+        # self.main_window.addToolBar(Qt.LeftToolBarArea, self.left_toolbar)
         self.setup_shortcuts()
 
     def eventFilter(self, source, event):
@@ -221,6 +224,6 @@ class AppGui(QVBoxLayout):
         )
 
         if file_path:
-            screenshot = self.images_widget.grab()
+            screenshot = self.main_widget.grab()
             screenshot.save(file_path, "jpg")
             print(f"Saved screenshot as {file_path}")

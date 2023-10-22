@@ -1,7 +1,7 @@
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PySide6.QtCore import QRectF, QPointF, Qt, QLineF, QEvent, Signal
-from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QMessageBox, QGraphicsRectItem
+from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QMessageBox, QGraphicsRectItem, QLabel
 from PySide6.QtGui import (
     QPixmap,
     QDragEnterEvent,
@@ -38,6 +38,12 @@ class ImageView(QGraphicsView):
         self.setRenderHint(QPainter.SmoothPixmapTransform)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
+
+        self.image_label = QLabel(self)
+        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setText("No image loaded")
+        self.image_label.setStyleSheet("font-size: 18px; color: white;")
+        self.scene().addWidget(self.image_label)
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         mime_data = event.mimeData()
@@ -79,6 +85,7 @@ class ImageView(QGraphicsView):
         self.url = file_path
         self.rectangles = []
         self.updated_labels.emit(self.rectangles)
+        self.image_label.setVisible(False)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.current_mode == "rect_selection":
@@ -199,3 +206,7 @@ class ImageView(QGraphicsView):
             if rectangle.label_name == label:
                 self.fitInView(rectangle, Qt.KeepAspectRatio)
                 break
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.image_label.setGeometry(self.viewport().rect())
