@@ -6,6 +6,8 @@ class YesOrNoDialog(QDialog):
         super(YesOrNoDialog, self).__init__()
 
         self.setWindowTitle(window_title)
+        self.setGeometry(100, 100, 400, 100)
+
         self.canceled = False
 
         self.layout = QVBoxLayout()
@@ -32,6 +34,7 @@ class YesOrNoDialog(QDialog):
         self.layout.addWidget(self.title_label)
         self.layout.addWidget(self.text_label)
         self.layout.addWidget(self.description_label)
+        self.layout.addStretch()
         self.layout.addLayout(self.hor_layout)
 
         self.setLayout(self.layout)

@@ -5,6 +5,7 @@ class AddLabelDialog(QDialog):
     def __init__(self):
         super(AddLabelDialog, self).__init__()
         self.setWindowTitle("Add Label")
+        self.setGeometry(100, 100, 400, 100)
 
         self.layout = QVBoxLayout()
 
@@ -24,6 +25,7 @@ class AddLabelDialog(QDialog):
         self.hor_layout.addWidget(self.button_ok)
 
         self.layout.addWidget(self.label_name_input)
+        self.layout.addStretch()
         self.layout.addLayout(self.hor_layout)
 
         self.setLayout(self.layout)

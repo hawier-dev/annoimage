@@ -109,6 +109,7 @@ def main():
         "QMenu::item:selected {background-color: " + f"{PRIMARY_COLOR}" + "; color: #ffffff;}"
         "QMenu::item:pressed {background-color: " + f"{PRIMARY_COLOR}" + "; color: #ffffff;}"
         "QMenu::item:disabled {background-color: " + f"{BACKGROUND_COLOR}" + "; color: #ffffff;}"
+        "QToolTip {background-color: " + f"{BACKGROUND_COLOR}" + "; color: #ffffff; border: none; padding: 5px;}"
     )
     window = MyApp()
     icon = QIcon("icons/logo.png")

@@ -207,6 +207,10 @@ class ImageView(QGraphicsView):
                     self.labels_names.append(self.label_name)
                     self.parent.label_name_selector.addItem(self.label_name)
                     self.parent.label_name_selector.setCurrentText(self.label_name)
+                    rectangle_item.label_name = self.generate_label_name(self.label_name)
+                    rectangle_item.label_id = self.label_id
+                    rectangle_item.label_line = rectangle_item.create_yolo_label()
+
                 else:
                     self.scene().removeItem(self.rect_item)
                     return

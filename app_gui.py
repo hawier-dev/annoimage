@@ -137,6 +137,7 @@ class AppGui(QVBoxLayout):
         self.labels_list.delete_pressed.connect(self.delete_selected_labels)
 
         self.manage_labels_button = QPushButton("Manage labels")
+        self.manage_labels_button.setToolTip("Add or delete label names")
         self.manage_labels_button.clicked.connect(self.manage_labels)
 
         self.images_label = QLabel("Images")
