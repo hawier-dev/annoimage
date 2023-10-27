@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLineEdit, QVBoxLayout, QHBoxLayout, QPushButton
 
 
@@ -20,6 +21,7 @@ class AddLabelDialog(QDialog):
         self.button_cancel.clicked.connect(self.reject)
         self.button_ok = QPushButton("OK")
         self.button_ok.clicked.connect(self.accept)
+        self.button_ok.setShortcut(Qt.Key_Return)
 
         self.hor_layout.addWidget(self.button_cancel)
         self.hor_layout.addWidget(self.button_ok)
@@ -29,3 +31,4 @@ class AddLabelDialog(QDialog):
         self.layout.addLayout(self.hor_layout)
 
         self.setLayout(self.layout)
+
