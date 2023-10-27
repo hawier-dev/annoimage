@@ -118,7 +118,7 @@ class AppGui(QVBoxLayout):
         # Center widget with image viewer
         self.center_layout = QVBoxLayout()
 
-        self.image_view = ImageView()
+        self.image_view = ImageView(parent=self)
         self.image_view.label_added.connect(self.update_labels_list)
         self.image_view.updated_labels.connect(self.update_labels_list)
         self.image_view.drawing_rectangle.connect(self.update_box_size_label)
@@ -272,7 +272,6 @@ class AppGui(QVBoxLayout):
             else:
                 return
 
-
         if type(image) is QModelIndex:
             self.image_view.load_image(self.images[image.row()])
         elif type(image) is str:
@@ -319,8 +318,6 @@ class AppGui(QVBoxLayout):
             None, "Select directory with images", ""
         )
 
-        # directory = r"D:\oznaczanie_parkingow"
-
         if directory:
             self.images = [
                 os.path.join(directory, file)
@@ -344,6 +341,8 @@ class AppGui(QVBoxLayout):
 
                 if result == QDialog.Accepted:
                     self.select_output_path(directory)
+
+            self.load_image(self.images[0])
 
         # self.manage_labels()
 
@@ -373,6 +372,8 @@ class AppGui(QVBoxLayout):
 
                 if result == QDialog.Accepted:
                     self.select_output_path(os.path.dirname(file_paths[0]))
+
+            self.load_image(self.images[0])
 
     def load_classes_from_directory(self, directory):
         classes_file = os.path.join(directory, "classes.txt")

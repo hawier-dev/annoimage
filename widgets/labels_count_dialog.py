@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetIt
 
 
 class LabelsCountDialog(QDialog):
-    def __init__(self, label_names, label_paths:list, label_type="YOLO"):
+    def __init__(self, label_names, label_paths: list, label_type="YOLO"):
         super().__init__()
 
         self.setWindowTitle("Labels count")

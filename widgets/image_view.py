@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QMessageBox,
     QGraphicsRectItem,
-    QLabel,
+    QLabel, QDialog,
 )
 from PySide6.QtGui import (
     QPixmap,
@@ -20,6 +20,7 @@ from PySide6.QtGui import (
     QColor,
 )
 
+from widgets.add_label_dialog import AddLabelDialog
 from widgets.labels_count_dialog import LabelsCountDialog
 from widgets.rectangle_item import RectangleItem
 
@@ -31,7 +32,7 @@ class ImageView(QGraphicsView):
     updated_labels = Signal(list)
     drawing_rectangle = Signal(tuple, bool)
 
-    def __init__(self):
+    def __init__(self, parent=None):
         super().__init__()
         self.zoom_factor = 0
         self.url = None
@@ -46,6 +47,7 @@ class ImageView(QGraphicsView):
         self.labels_names = []
         self.middle_mouse_button_pressed = False
         self.middle_mouse_last_position = None
+        self.parent = parent
         self.setContentsMargins(5, 5, 5, 5)
 
         self.current_mode = "select"
@@ -197,6 +199,17 @@ class ImageView(QGraphicsView):
                 self.scene().removeItem(self.rect_item)
                 return
 
+            if not self.labels_names:
+                add_label_dialog = AddLabelDialog()
+                if add_label_dialog.exec() == QDialog.Accepted:
+                    self.label_name = add_label_dialog.label_name_input.text()
+                    self.label_id = 0
+                    self.labels_names.append(self.label_name)
+                    self.parent.label_name_selector.addItem(self.label_name)
+                    self.parent.label_name_selector.setCurrentText(self.label_name)
+                else:
+                    self.scene().removeItem(self.rect_item)
+                    return
             self.rectangles.append(rectangle_item)
             self.scene().addItem(rectangle_item)
             if self.rect_item in self.scene().items():

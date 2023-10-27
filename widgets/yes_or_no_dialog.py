@@ -1,5 +1,4 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QMessageBox, QLabel, QVBoxLayout, QDialog, QPushButton, QHBoxLayout
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QDialog, QPushButton, QHBoxLayout
 
 
 class YesOrNoDialog(QDialog):
