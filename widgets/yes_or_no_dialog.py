@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QDialog, QPushButton, QHBoxLayout
 
 
@@ -21,6 +22,7 @@ class YesOrNoDialog(QDialog):
         self.hor_layout = QHBoxLayout()
         self.button_yes = QPushButton("Yes")
         self.button_yes.clicked.connect(self.accept)
+        self.button_yes.setShortcut(Qt.Key_Return)
         self.button_no = QPushButton("No")
         self.button_no.clicked.connect(self.reject)
         self.button_cancel = QPushButton("Cancel")
