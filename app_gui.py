@@ -1,18 +1,27 @@
 import os
 
-from PySide6 import QtWidgets
-from PySide6.QtCore import QSize, Qt, QEvent
-from PySide6.QtGui import QAction, QIcon, QShortcut, QKeySequence, QPixmap
+from PySide6.QtCore import QSize, Qt, QEvent, QModelIndex
+from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QWidget,
     QFileDialog,
-    QToolBar, QListWidget, QLabel, QPushButton, QSplitter, QStatusBar,
+    QToolBar,
+    QListWidget,
+    QLabel,
+    QPushButton,
+    QLineEdit,
+    QComboBox,
+    QMessageBox, QMenu, QWidgetAction, QDialog,
 )
 
 from constants import *
 from widgets.image_view import ImageView
+from widgets.labels_count_dialog import LabelsCountDialog
+from widgets.labels_manage_dialog import LabelsManageDialog
+from widgets.list_widget import ListWidget
+from widgets.yes_or_no_dialog import YesOrNoDialog
 
 
 class AppGui(QVBoxLayout):
@@ -20,6 +29,8 @@ class AppGui(QVBoxLayout):
         super(AppGui, self).__init__(parent)
         self.main_window = parent
         self.images = []
+        self.labels_names = []
+        self.saved = True
 
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -30,7 +41,11 @@ class AppGui(QVBoxLayout):
         self.top_bar_layout.setContentsMargins(0, 0, 0, 0)
 
         self.app_logo = QLabel()
-        self.app_logo.setPixmap(QPixmap("icons/annoimage.png").scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.app_logo.setPixmap(
+            QPixmap("icons/logo.png").scaled(
+                24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+        )
 
         self.app_name = QLabel(TITLE)
         self.app_name.setStyleSheet("font-size: 15px;")
@@ -38,14 +53,21 @@ class AppGui(QVBoxLayout):
         self.open_directory_button = QPushButton("Open directory")
         self.open_directory_button.clicked.connect(self.open_directory)
 
-        self.open_file_button = QPushButton("Open file")
+        self.open_file_button = QPushButton("Open files")
         self.open_file_button.clicked.connect(self.open_file)
 
+        self.label_name_selector = QComboBox()
+        self.label_name_selector.setFixedWidth(100)
+        self.label_name_selector.currentTextChanged.connect(self.set_label_name)
+
+        self.top_bar_layout.addSpacing(8)
         self.top_bar_layout.addWidget(self.app_logo)
         self.top_bar_layout.addWidget(self.app_name)
         self.top_bar_layout.addStretch()
+        self.top_bar_layout.addWidget(self.label_name_selector)
         self.top_bar_layout.addWidget(self.open_directory_button)
         self.top_bar_layout.addWidget(self.open_file_button)
+        self.top_bar_layout.addSpacing(8)
 
         self.top_bar.setLayout(self.top_bar_layout)
 
@@ -66,12 +88,16 @@ class AppGui(QVBoxLayout):
         self.select_button.setChecked(True)
         self.select_button.setShortcut("S")
 
-        self.rectangle_button = QAction(QIcon("icons/rect_selection.png"), "Rectangle (R)", self)
+        self.rectangle_button = QAction(
+            QIcon("icons/rect_selection.png"), "Rectangle (R)", self
+        )
         self.rectangle_button.triggered.connect(self.set_rect_selection)
         self.rectangle_button.setCheckable(True)
         self.rectangle_button.setShortcut("R")
 
-        self.previous_button = QAction(QIcon("icons/previous.png"), "Previous (Arrow Left)", self)
+        self.previous_button = QAction(
+            QIcon("icons/previous.png"), "Previous (Arrow Left)", self
+        )
         self.previous_button.triggered.connect(self.previous_image)
         self.previous_button.setShortcut("Left")
 
@@ -80,7 +106,7 @@ class AppGui(QVBoxLayout):
         self.next_button.setShortcut("Right")
 
         self.save_button = QAction(QIcon("icons/save.png"), "Save (CTRL + S)", self)
-        self.save_button.triggered.connect(self.save_labeled_image)
+        self.save_button.triggered.connect(self.save_labels)
         self.save_button.setShortcut("CTRL+S")
 
         self.left_toolbar.addAction(self.select_button)
@@ -95,6 +121,7 @@ class AppGui(QVBoxLayout):
         self.image_view = ImageView()
         self.image_view.label_added.connect(self.update_labels_list)
         self.image_view.updated_labels.connect(self.update_labels_list)
+        self.image_view.drawing_rectangle.connect(self.update_box_size_label)
         self.image_view.scene().selectionChanged.connect(self.update_selection)
 
         self.center_layout.addWidget(self.image_view)
@@ -102,63 +129,188 @@ class AppGui(QVBoxLayout):
         self.right_panel_layout = QVBoxLayout()
 
         self.labels_label = QLabel("Labels")
-        self.labels_list = QListWidget()
-        self.labels_list.setMaximumWidth(150)
+        self.labels_list = ListWidget()
+        self.labels_list.setMaximumWidth(200)
         self.labels_list.setSelectionMode(QListWidget.ExtendedSelection)
         self.labels_list.itemSelectionChanged.connect(self.select_labels_from_list)
         self.labels_list.installEventFilter(self)
+        self.labels_list.delete_pressed.connect(self.delete_selected_labels)
+
+        self.manage_labels_button = QPushButton("Manage labels")
+        self.manage_labels_button.clicked.connect(self.manage_labels)
 
         self.images_label = QLabel("Images")
-        self.images_list = QListWidget()
-        self.images_list.setMaximumWidth(150)
+        self.images_list = ListWidget()
+        self.images_list.setMaximumWidth(200)
+        self.images_list.setSelectionMode(QListWidget.ExtendedSelection)
         self.images_list.doubleClicked.connect(self.load_image)
         self.images_list.installEventFilter(self)
+        self.images_list.delete_pressed.connect(self.delete_selected_photos)
+
+        self.count_labels_button = QPushButton("Count all labels")
+        self.count_labels_button.clicked.connect(self.count_all_labels)
 
         self.right_panel_layout.addWidget(self.labels_label)
         self.right_panel_layout.addWidget(self.labels_list)
+        self.right_panel_layout.addWidget(self.manage_labels_button)
         self.right_panel_layout.addSpacing(10)
         self.right_panel_layout.addWidget(self.images_label)
         self.right_panel_layout.addWidget(self.images_list)
+        self.right_panel_layout.addWidget(self.count_labels_button)
 
         self.main_layout.addWidget(self.left_toolbar)
         self.main_layout.addLayout(self.center_layout)
         self.main_layout.addLayout(self.right_panel_layout)
 
-        self.status_bar = QStatusBar()
-        self.version = QLabel(f"{TITLE} {VERSION}")
-        self.status_bar.addWidget(self.version)
+        # Bottom bar with output_path picker
+        self.bottom_bar = QWidget()
+        self.bottom_bar.setStyleSheet("padding: 5px;")
+        self.bottom_bar_layout = QHBoxLayout()
+        self.bottom_bar_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.main_window.setStatusBar(self.status_bar)
+        self.output_path_line_edit = QLineEdit()
+        self.output_path_line_edit.setPlaceholderText("Output path")
+        self.output_path_line_edit.setFixedHeight(30)
+        self.output_path_line_edit.setReadOnly(True)
+
+        self.output_path_button = QPushButton("...")
+        self.output_path_button.setFixedSize(30, 30)
+        self.output_path_button.clicked.connect(self.select_output_path)
+
+        self.bottom_bar_layout.addSpacing(8)
+        self.bottom_bar_layout.addWidget(self.output_path_line_edit)
+        self.bottom_bar_layout.addWidget(self.output_path_button)
+        self.bottom_bar_layout.addSpacing(8)
+
+        self.bottom_bar.setLayout(self.bottom_bar_layout)
+
+        self.status_bar = QWidget()
+        self.status_bar.setStyleSheet("padding: 5px;")
+        self.status_bar.setContentsMargins(0, 0, 0, 0)
+        self.status_bar_layout = QHBoxLayout()
+        self.status_bar_layout.setContentsMargins(0, 0, 0, 0)
+        self.version = QLabel(f"{TITLE} {VERSION}")
+        self.status_label = QLabel("Saved")
+        self.set_saved(True)
+        self.box_size_label = QLabel("")
+
+        self.status_bar_layout.addWidget(self.version)
+        self.status_bar_layout.addStretch()
+        self.status_bar_layout.addWidget(self.box_size_label)
+        self.status_bar_layout.addWidget(self.status_label)
+
+        self.status_bar.setLayout(self.status_bar_layout)
 
         self.addWidget(self.top_bar)
         self.addLayout(self.main_layout)
+        self.addWidget(self.bottom_bar)
+        self.addWidget(self.status_bar)
+        self.addSpacing(5)
 
         # self.main_window.addToolBar(Qt.LeftToolBarArea, self.left_toolbar)
-        self.setup_shortcuts()
+        # self.open_directory()
 
     def eventFilter(self, source, event):
-        if (event.type() == QEvent.ContextMenu and
-                source is self.labels_list):
-            menu = QtWidgets.QMenu()
-            menu.addAction('Zoom to')
+        if event.type() == QEvent.ContextMenu and source is self.labels_list:
             item = source.itemAt(event.pos())
+            menu = QMenu()
+
             if item is not None:
+                title = QWidgetAction(menu)
+                title.setDisabled(True)
+                title_label = QLabel(item.text())
+                title_label.setStyleSheet(
+                    "font-size: 13px; padding: 5px;"
+                    f"border-bottom: 1px solid {BACKGROUND_COLOR2};"
+                )
+                title.setDefaultWidget(title_label)
+                menu.addAction(title)
+                menu.addAction("Zoom to")
+
                 selected_menu = menu.exec_(event.globalPos())
                 if selected_menu is None:
                     return True
-                elif selected_menu.text() == 'Zoom to':
+                elif selected_menu.text() == "Zoom to":
                     self.image_view.zoom_to_rect(item.text())
+
+            return True
+        elif event.type() == QEvent.ContextMenu and source is self.images_list:
+            item = source.itemAt(event.pos())
+            menu = QMenu()
+
+            if item is not None:
+                title = QWidgetAction(menu)
+                title.setDisabled(True)
+                title_label = QLabel(item.text())
+                title_label.setStyleSheet(
+                    "font-size: 13px; padding: 5px;"
+                    f"border-bottom: 1px solid {BACKGROUND_COLOR2};"
+                )
+                title.setDefaultWidget(title_label)
+                menu.addAction(title)
+                menu.addAction("Load image")
+                menu.addAction("Count labels")
+                selected_menu = menu.exec_(event.globalPos())
+                if selected_menu is None:
+                    return True
+                elif selected_menu.text() == "Load image":
+                    self.load_image(self.images[self.images_list.row(item)])
+                elif selected_menu.text() == "Count labels":
+                    self.count_labels(self.images[self.images_list.row(item)])
 
             return True
         return super(QVBoxLayout, self).eventFilter(source, event)
 
-    def setup_shortcuts(self):
-        delete_shortcut = QShortcut(QKeySequence(Qt.Key_Delete), self.main_window)
-        delete_shortcut.activated.connect(self.delete_selected_labels)
-
     def load_image(self, image):
-        # load image by index from images list
-        self.image_view.load_image(self.images[image.row()])
+        if not self.saved:
+            yes_no_dialog = YesOrNoDialog("Save", "You have unsaved changes.", "Do you want to save them?", cancel=True)
+            result = yes_no_dialog.exec_()
+            if result == YesOrNoDialog.Accepted:
+                self.save_labels()
+            elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
+                self.set_saved(True)
+            else:
+                return
+
+
+        if type(image) is QModelIndex:
+            self.image_view.load_image(self.images[image.row()])
+        elif type(image) is str:
+            self.image_view.load_image(image)
+
+    def update_box_size_label(self, box_size: tuple, drawing: bool):
+        if not drawing:
+            self.box_size_label.setText("")
+        else:
+            self.box_size_label.setText(f"{box_size[0], box_size[1]}")
+
+    def set_label_name(self, label_name):
+        self.image_view.label_name = label_name
+        try:
+            self.image_view.label_id = self.labels_names.index(label_name)
+        except ValueError:
+            self.image_view.label_id = None
+
+    def manage_labels(self):
+        labels_manage_dialog = LabelsManageDialog(self.labels_names)
+        labels_manage_dialog.exec_()
+        self.labels_names = [
+            labels_manage_dialog.list_widget.item(i).text()
+            for i in range(labels_manage_dialog.list_widget.count())
+        ]
+
+        self.update_labels_names()
+
+    def update_labels_names(self):
+        current_items = [
+            self.label_name_selector.itemText(i)
+            for i in range(self.label_name_selector.count())
+        ]
+        for label_name in self.labels_names:
+            if label_name not in current_items:
+                self.label_name_selector.addItem(label_name)
+
+        self.image_view.labels_names = self.labels_names
 
     def open_directory(self):
         file_dialog = QFileDialog()
@@ -167,31 +319,154 @@ class AppGui(QVBoxLayout):
             None, "Select directory with images", ""
         )
 
+        # directory = r"D:\oznaczanie_parkingow"
+
         if directory:
-            self.images = [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith(".jpg")]
+            self.images = [
+                os.path.join(directory, file)
+                for file in os.listdir(directory)
+                if file.endswith(".jpg")
+            ]
             self.images_list.clear()
-            self.images_list.addItems([os.path.basename(image) for image in self.images])
+            self.images_list.addItems(
+                [os.path.basename(image) for image in self.images]
+            )
+
+            if self.output_path_line_edit.text() == "":
+                self.select_output_path(directory)
+            else:
+                yes_or_no_dialog = YesOrNoDialog(
+                    "Change output path",
+                    "Do you want to change output path to selected directory?",
+                    "Label files will be loaded and saved in this directory.",
+                )
+                result = yes_or_no_dialog.exec_()
+
+                if result == QDialog.Accepted:
+                    self.select_output_path(directory)
+
+        # self.manage_labels()
 
     def open_file(self):
-        pass
+        file_dialog = QFileDialog()
+
+        file_paths, _ = file_dialog.getOpenFileNames(
+            None, "Select images", "", "Image Files (*.jpg *.jpeg *.png *.tif)"
+        )
+
+        if file_paths:
+            self.images = file_paths
+            self.images_list.clear()
+            self.images_list.addItems(
+                [os.path.basename(image) for image in self.images]
+            )
+
+            if self.output_path_line_edit.text() == "":
+                self.select_output_path(os.path.dirname(file_paths[0]))
+            else:
+                yes_or_no_dialog = YesOrNoDialog(
+                    "Change output path",
+                    "Do you want to change output path to directory with selected images?",
+                    "Label files will be loaded and saved in this directory.",
+                )
+                result = yes_or_no_dialog.exec_()
+
+                if result == QDialog.Accepted:
+                    self.select_output_path(os.path.dirname(file_paths[0]))
+
+    def load_classes_from_directory(self, directory):
+        classes_file = os.path.join(directory, "classes.txt")
+        if os.path.exists(classes_file):
+            if self.labels_names:
+                yes_no_dialog = YesOrNoDialog(
+                    "Load classes",
+                    "Do you want to load class names from selected directory?",
+                    "Current class names will be overwritten.",
+                )
+                result = yes_no_dialog.exec_()
+                if result == QMessageBox.Accepted:
+                    with open(classes_file, "r") as file:
+                        self.labels_names = [
+                            label.strip() for label in file.read().splitlines()
+                        ]
+                        self.label_name_selector.clear()
+                        self.update_labels_names()
+                else:
+                    return
+            else:
+                with open(classes_file, "r") as file:
+                    self.labels_names = [
+                        label.strip() for label in file.read().splitlines()
+                    ]
+                    self.update_labels_names()
+
+    def select_output_path(self, output_path=None):
+        if output_path:
+            directory = output_path
+        else:
+            file_dialog = QFileDialog()
+            directory = file_dialog.getExistingDirectory(
+                None, "Select output directory", ""
+            )
+
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+            self.output_path_line_edit.setText(directory)
+            self.image_view.output_path = directory
+            self.load_classes_from_directory(directory)
+
+    def delete_selected_photos(self):
+        selected_items = self.images_list.selectedItems()
+        selected_images = [item.text() for item in selected_items]
+        images_to_delete = [
+            image for image in self.images if os.path.basename(image) in selected_images
+        ]
+        for image in images_to_delete:
+            self.images.remove(image)
+
+        self.images_list.clear()
+        self.images_list.addItems([os.path.basename(image) for image in self.images])
 
     def delete_selected_labels(self):
         selected_items = self.labels_list.selectedItems()
         selected_labels = [item.text() for item in selected_items]
-        rectangles_to_delete = [rectangle for rectangle in self.image_view.rectangles if rectangle.label_name in selected_labels]
+        rectangles_to_delete = [
+            rectangle
+            for rectangle in self.image_view.rectangles
+            if rectangle.label_name in selected_labels
+        ]
         self.image_view.delete_selected_rectangles(rectangles_to_delete)
 
-    def update_labels_list(self):
+    def set_saved(self, status):
+        if status:
+            self.status_label.setText("Saved")
+            self.status_label.setStyleSheet("color: lime; font-weight: bold;")
+            self.saved = True
+
+        else:
+            self.status_label.setText("Not saved")
+            self.status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.saved = False
+
+    def update_labels_list(self, *args):
         self.labels_list.clear()
+        labels = [rectangle.label_line for rectangle in self.image_view.rectangles]
+
+        self.set_saved(labels == self.image_view.current_saved_labels)
+
         for rectangle in self.image_view.rectangles:
             self.labels_list.addItem(rectangle.label_name)
 
     def update_selection(self):
         for rectangle in self.image_view.rectangles:
             if rectangle.isSelected():
-                self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[0].setSelected(True)
+                self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[
+                    0
+                ].setSelected(True)
             else:
-                self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[0].setSelected(False)
+                self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[
+                    0
+                ].setSelected(False)
 
     def select_labels_from_list(self):
         selected_items = self.labels_list.selectedItems()
@@ -210,20 +485,66 @@ class AppGui(QVBoxLayout):
         self.image_view.set_rect_selection()
 
     def previous_image(self):
-        pass
+        current_image = self.image_view.url
+        if current_image:
+            current_image_index = self.images.index(current_image)
+            if current_image_index > 0:
+                self.load_image(self.images[current_image_index - 1])
+                self.images_list.setCurrentRow(current_image_index - 1)
 
     def next_image(self):
-        pass
+        current_image = self.image_view.url
+        if current_image:
+            current_image_index = self.images.index(current_image)
+            if current_image_index < len(self.images) - 1:
+                self.load_image(self.images[current_image_index + 1])
+                self.images_list.setCurrentRow(current_image_index + 1)
 
-    def save_labeled_image(self):
-        file_dialog = QFileDialog()
-        file_dialog.setNameFilter("JPEG Image Files (*.jpg)")
+    def save_labels(self):
+        output_path = self.output_path_line_edit.text()
 
-        file_path, _ = file_dialog.getSaveFileName(
-            None, "Save Comparison Screenshot", "", "JPEG Image Files (*.jpg)"
+        if output_path == "":
+            self.select_output_path()
+            return
+        os.makedirs(output_path, exist_ok=True)
+
+        output_label_path = os.path.join(
+            output_path,
+            os.path.splitext(os.path.basename(self.image_view.url))[0] + ".txt",
         )
+        try:
+            labels = [rectangle.label_line for rectangle in self.image_view.rectangles]
 
-        if file_path:
-            screenshot = self.main_widget.grab()
-            screenshot.save(file_path, "jpg")
-            print(f"Saved screenshot as {file_path}")
+            with open(output_label_path, "w") as file:
+                for label in labels:
+                    file.write(f"{label}\n")
+                    print(label)
+
+            classes_file = os.path.join(output_path, "classes.txt")
+            with open(classes_file, "w") as file:
+                for label_name in self.labels_names:
+                    file.write(f"{label_name}\n")
+
+            self.image_view.current_saved_labels = labels
+            self.set_saved(labels == self.image_view.current_saved_labels)
+
+        except Exception as e:
+            print(e)
+
+    def count_labels(self, path):
+        label_file = os.path.join(self.output_path_line_edit.text(),
+                                  os.path.splitext(os.path.basename(path))[0] + ".txt")
+
+        if os.path.exists(label_file):
+            labels_count_dialog = LabelsCountDialog(self.labels_names, [label_file])
+            labels_count_dialog.exec_()
+
+    def count_all_labels(self):
+        label_files = [os.path.join(self.output_path_line_edit.text(), os.path.splitext(os.path.basename(image))[0] + ".txt")
+                       for image in self.images]
+
+        label_files = [label_file for label_file in label_files if os.path.exists(label_file)]
+
+        if label_files:
+            labels_count_dialog = LabelsCountDialog(self.labels_names, label_files)
+            labels_count_dialog.exec_()

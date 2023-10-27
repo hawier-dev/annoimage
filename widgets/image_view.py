@@ -1,14 +1,26 @@
+import os
+
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PySide6.QtCore import QRectF, QPointF, Qt, QLineF, QEvent, Signal
-from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QMessageBox, QGraphicsRectItem, QLabel
+from PySide6.QtWidgets import (
+    QGraphicsView,
+    QGraphicsScene,
+    QMessageBox,
+    QGraphicsRectItem,
+    QLabel,
+)
 from PySide6.QtGui import (
     QPixmap,
     QDragEnterEvent,
     QDropEvent,
-    QPainter, QPen, QBrush, QColor
+    QPainter,
+    QPen,
+    QBrush,
+    QColor,
 )
 
+from widgets.labels_count_dialog import LabelsCountDialog
 from widgets.rectangle_item import RectangleItem
 
 Image.MAX_IMAGE_PIXELS = 933120000
@@ -17,6 +29,7 @@ Image.MAX_IMAGE_PIXELS = 933120000
 class ImageView(QGraphicsView):
     label_added = Signal(list)
     updated_labels = Signal(list)
+    drawing_rectangle = Signal(tuple, bool)
 
     def __init__(self):
         super().__init__()
@@ -27,10 +40,18 @@ class ImageView(QGraphicsView):
         self.end_point = None
         self.rect_item = None
         self.rectangles = []
+        self.current_saved_labels = []
+        self.label_name = None
+        self.label_id = None
+        self.labels_names = []
         self.middle_mouse_button_pressed = False
         self.middle_mouse_last_position = None
+        self.setContentsMargins(5, 5, 5, 5)
 
         self.current_mode = "select"
+
+        self.image_width = 0
+        self.image_height = 0
 
         self.setScene(QGraphicsScene(self))
         self.setAcceptDrops(True)
@@ -38,6 +59,9 @@ class ImageView(QGraphicsView):
         self.setRenderHint(QPainter.SmoothPixmapTransform)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
+
+        self.horizontalScrollBar().setFixedHeight(10)
+        self.verticalScrollBar().setFixedWidth(10)
 
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignCenter)
@@ -78,14 +102,51 @@ class ImageView(QGraphicsView):
 
         self.scene().clear()
         self.scene().addPixmap(pixmap)
+        self.image_width = pixmap.width()
+        self.image_height = pixmap.height()
+
         self.fitInView(self.scene().items()[0], Qt.KeepAspectRatio)
-        self.scene().setSceneRect(
-            0, 0, pixmap.width(), pixmap.height()
-        )
+        self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
         self.url = file_path
+
         self.rectangles = []
+        self.current_saved_labels = []
+        self.load_labels()
+
         self.updated_labels.emit(self.rectangles)
         self.image_label.setVisible(False)
+
+    def load_labels(self):
+        labels_file_path = os.path.splitext(self.url)[0] + ".txt"
+        if os.path.exists(labels_file_path):
+            with open(labels_file_path, "r") as labels_file:
+                for line in labels_file.readlines():
+                    line = line.strip()
+                    label_id, x, y, w, h = line.split(" ")
+                    x, y, width, height = (
+                        float(x) * self.image_width,
+                        float(y) * self.image_height,
+                        float(w) * self.image_width,
+                        float(h) * self.image_height,
+                    )
+                    label_name = self.generate_label_name(
+                        self.labels_names[int(label_id)]
+                    )
+                    rectangle = RectangleItem(
+                        QPointF(x - width / 2, y - height / 2),
+                        QPointF(x + width / 2, y + height / 2),
+                        label_name,
+                        label_id,
+                        self.image_width,
+                        self.image_height,
+                    )
+                    if self.current_mode == "select":
+                        rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+                        rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+
+                    self.rectangles.append(rectangle)
+                    self.current_saved_labels.append(line)
+                    self.scene().addItem(rectangle)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.current_mode == "rect_selection":
@@ -119,44 +180,64 @@ class ImageView(QGraphicsView):
             self.draw_rectangle()
             self.drawing = False
 
-            rectangle_item = RectangleItem(self.start_point, self.end_point)
+            rectangle_item = RectangleItem(
+                self.start_point,
+                self.end_point,
+                self.generate_label_name(self.label_name),
+                self.label_id,
+                self.image_width,
+                self.image_height,
+            )
+            if self.current_mode == "select":
+                rectangle_item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+                rectangle_item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+
             if rectangle_item.rect().width() < 5 or rectangle_item.rect().height() < 5:
                 self.scene().removeItem(rectangle_item)
                 self.scene().removeItem(self.rect_item)
                 return
 
-            rectangle_item.label_name = self.generate_label_name()
             self.rectangles.append(rectangle_item)
             self.scene().addItem(rectangle_item)
             if self.rect_item in self.scene().items():
                 self.scene().removeItem(self.rect_item)
 
             self.label_added.emit(self.rectangles)
+            self.drawing_rectangle.emit(
+                (rectangle_item.rect().width(), rectangle_item.rect().height()), False
+            )
 
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button_pressed = False
 
         super().mouseReleaseEvent(event)
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Delete:
+            self.delete_selected_rectangles(self.scene().selectedItems())
+
     def draw_rectangle(self):
         if self.rect_item in self.scene().items():
             self.scene().removeItem(self.rect_item)
         self.rect_item = QGraphicsRectItem()
-        pen = QPen(QColor(255, 0, 0))
+        pen = QPen(QColor(0, 255, 0))
         pen.setStyle(Qt.DashLine)
-        brush = QBrush(QColor(255, 0, 0, 128))
+        brush = QBrush(QColor(0, 255, 0, 128))
         self.rect_item.setPen(pen)
         self.rect_item.setBrush(brush)
 
         rect = self.calculate_rectangle()
         self.rect_item.setRect(rect)
+        self.drawing_rectangle.emit((round(rect.width(), 2), round(rect.height(), 2)), True)
         self.scene().addItem(self.rect_item)
         # self.rectangles.append(rect)
 
     def calculate_rectangle(self):
         x1, y1 = self.start_point.x(), self.start_point.y()
         x2, y2 = self.end_point.x(), self.end_point.y()
-        return QRectF(QPointF(min(x1, x2), min(y1, y2)), QPointF(max(x1, x2), max(y1, y2)))
+        return QRectF(
+            QPointF(min(x1, x2), min(y1, y2)), QPointF(max(x1, x2), max(y1, y2))
+        )
 
     def set_select_mode(self):
         self.setDragMode(QGraphicsView.RubberBandDrag)
@@ -178,11 +259,11 @@ class ImageView(QGraphicsView):
             rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
             rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, False)
 
-    def generate_label_name(self):
+    def generate_label_name(self, label_str):
         label_names = [rectangle.label_name for rectangle in self.rectangles]
         i = 0
         while True:
-            label_name = f"Label {i}"
+            label_name = f"{label_str} {i}"
             if label_name not in label_names:
                 return label_name
             i += 1
