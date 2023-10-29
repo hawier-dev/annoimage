@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
 
 from app_gui import AppGui
 from constants import *
+from widgets.yes_or_no_dialog import YesOrNoDialog
 
 
 class MyApp(QMainWindow):
@@ -19,6 +20,23 @@ class MyApp(QMainWindow):
         central_widget.setLayout(self.app_gui)
 
         self.setCentralWidget(central_widget)
+
+    def closeEvent(self, event):
+        saved = self.app_gui.saved
+        if not saved:
+            yes_no_dialog = YesOrNoDialog(
+                window_title="Save changes?",
+                title="Save changes?",
+                text="You have unsaved changes. Do you want to save them?",
+                cancel=True,
+            )
+            result = yes_no_dialog.exec_()
+            if result == YesOrNoDialog.Accepted:
+                self.app_gui.save_labels()
+            elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
+                self.close()
+            else:
+                return
 
 
 def create_palette():

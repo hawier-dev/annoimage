@@ -20,7 +20,9 @@ from PySide6.QtGui import (
     QColor,
 )
 
+from constants import SURFACE_COLOR
 from widgets.add_label_dialog import AddLabelDialog
+from widgets.image_loader import ImageLoader
 from widgets.labels_count_dialog import LabelsCountDialog
 from widgets.rectangle_item import RectangleItem
 
@@ -48,6 +50,7 @@ class ImageView(QGraphicsView):
         self.middle_mouse_button_pressed = False
         self.middle_mouse_last_position = None
         self.parent = parent
+        self.loading_image = False
         self.setContentsMargins(5, 5, 5, 5)
 
         self.current_mode = "select"
@@ -69,7 +72,15 @@ class ImageView(QGraphicsView):
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setText("No image loaded")
         self.image_label.setStyleSheet("font-size: 18px; color: white;")
+
+        self.loading_label = QLabel(self)
+        self.loading_label.setAlignment(Qt.AlignCenter)
+        self.loading_label.setText("Loading...")
+        self.loading_label.setStyleSheet(f"font-size: 18px; color: white; padding: 10px; background-color: {SURFACE_COLOR};")
+        self.loading_label.setVisible(False)
+
         self.scene().addWidget(self.image_label)
+        self.scene().addWidget(self.loading_label)
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         mime_data = event.mimeData()
@@ -93,13 +104,27 @@ class ImageView(QGraphicsView):
         self.scale(zoom_factor, zoom_factor)
 
     def load_image(self, file_path):
-        img = Image.open(file_path)
-        img = ImageQt(img)
-        pixmap = QPixmap.fromImage(img)
+        if self.loading_image:
+            return
+
+        self.image_label.setVisible(False)
+        self.loading_image = True
+        self.loading_label.move(self.width() // 2 - self.loading_label.width() // 2,
+                                self.height() // 2 - self.loading_label.height() // 2)
+        self.loading_label.setVisible(True)
+        self.url = file_path
+
+        self.image_loader = ImageLoader(file_path)
+        self.image_loader.loaded.connect(self.image_loaded)
+        self.image_loader.start()
+
+    def image_loaded(self, pixmap):
+        self.loading_image = False
         if pixmap.width() == 0:
             QMessageBox.critical(
                 self, "Error", "Unable to load the image.", QMessageBox.Ok
             )
+            self.loading_label.setVisible(False)
             return
 
         self.scene().clear()
@@ -109,14 +134,15 @@ class ImageView(QGraphicsView):
 
         self.fitInView(self.scene().items()[0], Qt.KeepAspectRatio)
         self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
-        self.url = file_path
 
         self.rectangles = []
         self.current_saved_labels = []
         self.load_labels()
 
         self.updated_labels.emit(self.rectangles)
+
         self.image_label.setVisible(False)
+        self.loading_label.setVisible(False)
 
     def load_labels(self):
         labels_file_path = os.path.splitext(self.url)[0] + ".txt"

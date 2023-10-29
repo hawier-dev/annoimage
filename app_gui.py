@@ -285,9 +285,15 @@ class AppGui(QVBoxLayout):
             self.box_size_label.setText(f"{box_size[0], box_size[1]}")
 
     def set_label_name(self, label_name):
+        print(label_name)
         self.image_view.label_name = label_name
         try:
-            self.image_view.label_id = self.labels_names.index(label_name)
+            index = 0
+            for i, name in enumerate(self.labels_names):
+                if name == label_name:
+                    index = i
+                    break
+            self.image_view.label_id = index
         except ValueError:
             self.image_view.label_id = None
 
@@ -504,6 +510,7 @@ class AppGui(QVBoxLayout):
 
     def save_labels(self):
         output_path = self.output_path_line_edit.text()
+        label_names = self.labels_names
 
         if output_path == "":
             self.select_output_path()
@@ -524,7 +531,7 @@ class AppGui(QVBoxLayout):
 
             classes_file = os.path.join(output_path, "classes.txt")
             with open(classes_file, "w") as file:
-                for label_name in self.labels_names:
+                for label_name in label_names:
                     file.write(f"{label_name}\n")
 
             self.image_view.current_saved_labels = labels
