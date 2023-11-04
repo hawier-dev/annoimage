@@ -167,10 +167,14 @@ class ImageView(QGraphicsView):
                         label_id,
                         self.image_width,
                         self.image_height,
+                        self,
                     )
                     if self.current_mode == "select":
                         rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
                         rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+
+                    # rectangle.start_resizing.connect(self.movable_disable)
+                    # rectangle.stop_resizing.connect(self.movable_enable)
 
                     self.rectangles.append(rectangle)
                     self.current_saved_labels.append(line)
@@ -215,7 +219,9 @@ class ImageView(QGraphicsView):
                 self.label_id,
                 self.image_width,
                 self.image_height,
+                self
             )
+
             if self.current_mode == "select":
                 rectangle_item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
                 rectangle_item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
@@ -334,3 +340,11 @@ class ImageView(QGraphicsView):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.image_label.setGeometry(self.viewport().rect())
+
+    def movable_disable(self):
+        for rectangle in self.rectangles:
+            rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
+
+    def movable_enable(self):
+        for rectangle in self.rectangles:
+            rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
