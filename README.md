@@ -5,10 +5,10 @@ AnnoImage is an image annotation tool that allows you to annotate images for obj
 ![AnnoImage](./screenshot.png)
 *(Image used in screenshot is from [Unsplash](https://unsplash.com/photos/green-single-cab-pickup-truck-parked-beside-building-z8ym2XTZ0ig?utm_content=creditShareLink&utm_medium=referral&utm_source=unsplash))*
 
-It is written in **Python** and uses **PySide6** for the GUI.
+## Features
 
-Supported annotation types:
-- [x] YOLO
-- [ ] COCO
+- [ x ] Annotate images for object detection
+- [ x ] Export annotations to YOLO format
+- [] Export annotations to COCO format
 
 **(Work in progress)**
