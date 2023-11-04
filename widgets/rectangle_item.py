@@ -8,11 +8,16 @@ class RectangleItem(QGraphicsRectItem):
     stop_resizing = Signal()
 
     def __init__(
-        self, start_point, end_point, label_name, label_id, image_width, image_height,
-            parent
+        self,
+        start_point,
+        end_point,
+        label_name,
+        label_id,
+        image_width,
+        image_height,
+        parent,
     ):
         super().__init__()
-        print("RectangleItem init")
         self.setRect(self.calculateRectangle(start_point, end_point))
         self.image_view = parent
         self.resize_handles = []
@@ -77,7 +82,10 @@ class RectangleItem(QGraphicsRectItem):
 
         for x, y in [(0, 0), (1, 0), (0, 1), (1, 1)]:
             handle = HandleItem(-half_size, -half_size, handle_size, handle_size, self)
-            handle.setPos(self.rect().x() + x * self.rect().width(), self.rect().y() + y * self.rect().height())
+            handle.setPos(
+                self.rect().x() + x * self.rect().width(),
+                self.rect().y() + y * self.rect().height(),
+            )
             handle.setFlag(QGraphicsEllipseItem.ItemIsMovable)
             handle.setBrush(QBrush(QColor(255, 0, 0)))
             handle.setData(0, (x, y))
@@ -87,7 +95,10 @@ class RectangleItem(QGraphicsRectItem):
     def update_handlers_position(self):
         for handle in self.resize_handles:
             x_offset, y_offset = handle.data(0)
-            handle.setPos(self.rect().x() + x_offset * self.rect().width(), self.rect().y() + y_offset * self.rect().height())
+            handle.setPos(
+                self.rect().x() + x_offset * self.rect().width(),
+                self.rect().y() + y_offset * self.rect().height(),
+            )
 
 
 class HandleItem(QGraphicsEllipseItem):
@@ -98,7 +109,10 @@ class HandleItem(QGraphicsEllipseItem):
         parent = self.parentItem()
         parent.image_view.movable_disable()
         x_offset, y_offset = self.data(0)
-        x, y = event.pos().x() - event.lastPos().x(), event.pos().y() - event.lastPos().y()
+        x, y = (
+            event.pos().x() - event.lastPos().x(),
+            event.pos().y() - event.lastPos().y(),
+        )
 
         if x_offset == 0:
             new_width = parent.rect().width() - x

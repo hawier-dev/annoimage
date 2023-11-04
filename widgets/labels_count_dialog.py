@@ -1,5 +1,12 @@
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QScrollArea
+from PySide6.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QScrollArea,
+)
 
 
 class LabelsCountDialog(QDialog):

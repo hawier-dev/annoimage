@@ -8,7 +8,8 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QMessageBox,
     QGraphicsRectItem,
-    QLabel, QDialog,
+    QLabel,
+    QDialog,
 )
 from PySide6.QtGui import (
     QPixmap,
@@ -76,7 +77,9 @@ class ImageView(QGraphicsView):
         self.loading_label = QLabel(self)
         self.loading_label.setAlignment(Qt.AlignCenter)
         self.loading_label.setText("Loading...")
-        self.loading_label.setStyleSheet(f"font-size: 18px; color: white; padding: 10px; background-color: {SURFACE_COLOR};")
+        self.loading_label.setStyleSheet(
+            f"font-size: 18px; color: white; padding: 10px; background-color: {SURFACE_COLOR};"
+        )
         self.loading_label.setVisible(False)
 
         self.scene().addWidget(self.image_label)
@@ -109,8 +112,10 @@ class ImageView(QGraphicsView):
 
         self.image_label.setVisible(False)
         self.loading_image = True
-        self.loading_label.move(self.width() // 2 - self.loading_label.width() // 2,
-                                self.height() // 2 - self.loading_label.height() // 2)
+        self.loading_label.move(
+            self.width() // 2 - self.loading_label.width() // 2,
+            self.height() // 2 - self.loading_label.height() // 2,
+        )
         self.loading_label.setVisible(True)
         self.url = file_path
 
@@ -173,9 +178,6 @@ class ImageView(QGraphicsView):
                         rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
                         rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
 
-                    # rectangle.start_resizing.connect(self.movable_disable)
-                    # rectangle.stop_resizing.connect(self.movable_enable)
-
                     self.rectangles.append(rectangle)
                     self.current_saved_labels.append(line)
                     self.scene().addItem(rectangle)
@@ -219,7 +221,7 @@ class ImageView(QGraphicsView):
                 self.label_id,
                 self.image_width,
                 self.image_height,
-                self
+                self,
             )
 
             if self.current_mode == "select":
@@ -239,7 +241,9 @@ class ImageView(QGraphicsView):
                     self.labels_names.append(self.label_name)
                     self.parent.label_name_selector.addItem(self.label_name)
                     self.parent.label_name_selector.setCurrentText(self.label_name)
-                    rectangle_item.label_name = self.generate_label_name(self.label_name)
+                    rectangle_item.label_name = self.generate_label_name(
+                        self.label_name
+                    )
                     rectangle_item.label_id = self.label_id
                     rectangle_item.label_line = rectangle_item.create_yolo_label()
 
@@ -281,10 +285,16 @@ class ImageView(QGraphicsView):
             self.label_id,
             self.image_width,
             self.image_height,
-            self
+            self,
         )
 
-        self.drawing_rectangle.emit((round(self.rect_item.rect().width(), 2), round(self.rect_item.rect().height(), 2)), True)
+        self.drawing_rectangle.emit(
+            (
+                round(self.rect_item.rect().width(), 2),
+                round(self.rect_item.rect().height(), 2),
+            ),
+            True,
+        )
         self.scene().addItem(self.rect_item)
         # self.rectangles.append(rect)
 

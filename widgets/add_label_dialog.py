@@ -31,4 +31,3 @@ class AddLabelDialog(QDialog):
         self.layout.addLayout(self.hor_layout)
 
         self.setLayout(self.layout)
-

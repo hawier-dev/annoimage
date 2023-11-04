@@ -13,7 +13,10 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLineEdit,
     QComboBox,
-    QMessageBox, QMenu, QWidgetAction, QDialog,
+    QMessageBox,
+    QMenu,
+    QWidgetAction,
+    QDialog,
 )
 
 from constants import *
@@ -264,7 +267,12 @@ class AppGui(QVBoxLayout):
 
     def load_image(self, image):
         if not self.saved:
-            yes_no_dialog = YesOrNoDialog("Save", "You have unsaved changes.", "Do you want to save them?", cancel=True)
+            yes_no_dialog = YesOrNoDialog(
+                "Save",
+                "You have unsaved changes.",
+                "Do you want to save them?",
+                cancel=True,
+            )
             result = yes_no_dialog.exec_()
             if result == YesOrNoDialog.Accepted:
                 self.save_labels()
@@ -541,18 +549,27 @@ class AppGui(QVBoxLayout):
             print(e)
 
     def count_labels(self, path):
-        label_file = os.path.join(self.output_path_line_edit.text(),
-                                  os.path.splitext(os.path.basename(path))[0] + ".txt")
+        label_file = os.path.join(
+            self.output_path_line_edit.text(),
+            os.path.splitext(os.path.basename(path))[0] + ".txt",
+        )
 
         if os.path.exists(label_file):
             labels_count_dialog = LabelsCountDialog(self.labels_names, [label_file])
             labels_count_dialog.exec_()
 
     def count_all_labels(self):
-        label_files = [os.path.join(self.output_path_line_edit.text(), os.path.splitext(os.path.basename(image))[0] + ".txt")
-                       for image in self.images]
+        label_files = [
+            os.path.join(
+                self.output_path_line_edit.text(),
+                os.path.splitext(os.path.basename(image))[0] + ".txt",
+            )
+            for image in self.images
+        ]
 
-        label_files = [label_file for label_file in label_files if os.path.exists(label_file)]
+        label_files = [
+            label_file for label_file in label_files if os.path.exists(label_file)
+        ]
 
         if label_files:
             labels_count_dialog = LabelsCountDialog(self.labels_names, label_files)
