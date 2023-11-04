@@ -268,16 +268,23 @@ class ImageView(QGraphicsView):
     def draw_rectangle(self):
         if self.rect_item in self.scene().items():
             self.scene().removeItem(self.rect_item)
-        self.rect_item = QGraphicsRectItem()
-        pen = QPen(QColor(0, 255, 0))
-        pen.setStyle(Qt.DashLine)
-        brush = QBrush(QColor(0, 255, 0, 128))
-        self.rect_item.setPen(pen)
-        self.rect_item.setBrush(brush)
 
-        rect = self.calculate_rectangle()
-        self.rect_item.setRect(rect)
-        self.drawing_rectangle.emit((round(rect.width(), 2), round(rect.height(), 2)), True)
+        x2 = max(0, min(self.end_point.x(), self.image_width))
+        y2 = max(0, min(self.end_point.y(), self.image_height))
+
+        self.end_point = QPointF(x2, y2)
+
+        self.rect_item = RectangleItem(
+            self.start_point,
+            self.end_point,
+            self.generate_label_name(self.label_name),
+            self.label_id,
+            self.image_width,
+            self.image_height,
+            self
+        )
+
+        self.drawing_rectangle.emit((round(self.rect_item.rect().width(), 2), round(self.rect_item.rect().height(), 2)), True)
         self.scene().addItem(self.rect_item)
         # self.rectangles.append(rect)
 
