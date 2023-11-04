@@ -92,9 +92,17 @@ class RectangleItem(QGraphicsRectItem):
 
             self.resize_handles.append(handle)
 
-    def update_handlers_position(self):
+    def update_handlers(self):
         for handle in self.resize_handles:
             x_offset, y_offset = handle.data(0)
+            handle_size = min(self.rect().width(), self.rect().height()) * 0.05
+
+            handle.setRect(
+                -handle_size / 2,
+                -handle_size / 2,
+                handle_size,
+                handle_size,
+            )
             handle.setPos(
                 self.rect().x() + x_offset * self.rect().width(),
                 self.rect().y() + y_offset * self.rect().height(),
@@ -128,11 +136,19 @@ class HandleItem(QGraphicsEllipseItem):
             new_height = parent.rect().height() + y
             new_y = parent.rect().y()
 
-        new_rect = QRectF(new_x, new_y, new_width, new_height)
-        parent.setRect(new_rect)
+        x1 = max(0, min(new_x, parent.image_width))
+        y1 = max(0, min(new_y, parent.image_height))
+        x2 = max(0, min(new_x + new_width, parent.image_width))
+        y2 = max(0, min(new_y + new_height, parent.image_height))
+
+        parent.start_point = QPointF(x1, y1)
+        parent.end_point = QPointF(x2, y2)
+        parent.setRect(parent.calculateRectangle(parent.start_point, parent.end_point))
+        # new_rect = QRectF(new_x, new_y, new_width, new_height)
+        # parent.setRect(new_rect)
         parent.label_line = parent.create_yolo_label()
-        parent.update_handlers_position()
         super().mouseMoveEvent(event)
+        parent.update_handlers()
 
     def mouseReleaseEvent(self, event):
         parent = self.parentItem()

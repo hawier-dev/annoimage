@@ -125,6 +125,7 @@ class AppGui(QVBoxLayout):
         self.image_view.label_added.connect(self.update_labels_list)
         self.image_view.updated_labels.connect(self.update_labels_list)
         self.image_view.drawing_rectangle.connect(self.update_box_size_label)
+        self.image_view.on_image_loaded.connect(self.set_current_image)
         self.image_view.scene().selectionChanged.connect(self.update_selection)
 
         self.center_layout.addWidget(self.image_view)
@@ -285,6 +286,9 @@ class AppGui(QVBoxLayout):
             self.image_view.load_image(self.images[image.row()])
         elif type(image) is str:
             self.image_view.load_image(image)
+
+    def set_current_image(self, path):
+        self.images_list.setCurrentRow(self.images.index(path))
 
     def update_box_size_label(self, box_size: tuple, drawing: bool):
         if not drawing:
@@ -506,7 +510,6 @@ class AppGui(QVBoxLayout):
             current_image_index = self.images.index(current_image)
             if current_image_index > 0:
                 self.load_image(self.images[current_image_index - 1])
-                self.images_list.setCurrentRow(current_image_index - 1)
 
     def next_image(self):
         current_image = self.image_view.url
@@ -514,7 +517,6 @@ class AppGui(QVBoxLayout):
             current_image_index = self.images.index(current_image)
             if current_image_index < len(self.images) - 1:
                 self.load_image(self.images[current_image_index + 1])
-                self.images_list.setCurrentRow(current_image_index + 1)
 
     def save_labels(self):
         output_path = self.output_path_line_edit.text()

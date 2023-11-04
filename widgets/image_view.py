@@ -1,8 +1,7 @@
 import os
 
 from PIL import Image
-from PIL.ImageQt import ImageQt
-from PySide6.QtCore import QRectF, QPointF, Qt, QLineF, QEvent, Signal
+from PySide6.QtCore import QRectF, QPointF, Qt, Signal
 from PySide6.QtWidgets import (
     QGraphicsView,
     QGraphicsScene,
@@ -12,19 +11,14 @@ from PySide6.QtWidgets import (
     QDialog,
 )
 from PySide6.QtGui import (
-    QPixmap,
     QDragEnterEvent,
     QDropEvent,
     QPainter,
-    QPen,
-    QBrush,
-    QColor,
 )
 
 from constants import SURFACE_COLOR
 from widgets.add_label_dialog import AddLabelDialog
 from widgets.image_loader import ImageLoader
-from widgets.labels_count_dialog import LabelsCountDialog
 from widgets.rectangle_item import RectangleItem
 
 Image.MAX_IMAGE_PIXELS = 933120000
@@ -34,6 +28,7 @@ class ImageView(QGraphicsView):
     label_added = Signal(list)
     updated_labels = Signal(list)
     drawing_rectangle = Signal(tuple, bool)
+    on_image_loaded = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__()
@@ -82,8 +77,8 @@ class ImageView(QGraphicsView):
         )
         self.loading_label.setVisible(False)
 
-        self.scene().addWidget(self.image_label)
-        self.scene().addWidget(self.loading_label)
+        # self.scene().addWidget(self.image_label)
+        # self.scene().addWidget(self.loading_label)
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         mime_data = event.mimeData()
@@ -145,6 +140,7 @@ class ImageView(QGraphicsView):
         self.load_labels()
 
         self.updated_labels.emit(self.rectangles)
+        self.on_image_loaded.emit(self.url)
 
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
@@ -185,7 +181,10 @@ class ImageView(QGraphicsView):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.current_mode == "rect_selection":
             self.start_point = self.mapToScene(event.pos())
-            self.drawing = True
+            self.drawing = (
+                    0 <= self.start_point.x() <= self.image_width
+                    and 0 <= self.start_point.y() <= self.image_height
+            )
         elif event.button() == Qt.MiddleButton:
             self.middle_mouse_button_pressed = True
             self.middle_mouse_last_position = event.pos()
@@ -273,9 +272,12 @@ class ImageView(QGraphicsView):
         if self.rect_item in self.scene().items():
             self.scene().removeItem(self.rect_item)
 
+        x1 = max(0, min(self.start_point.x(), self.image_width))
+        y1 = max(0, min(self.start_point.y(), self.image_height))
         x2 = max(0, min(self.end_point.x(), self.image_width))
         y2 = max(0, min(self.end_point.y(), self.image_height))
 
+        self.start_point = QPointF(x1, y1)
         self.end_point = QPointF(x2, y2)
 
         self.rect_item = RectangleItem(
@@ -359,9 +361,15 @@ class ImageView(QGraphicsView):
         self.image_label.setGeometry(self.viewport().rect())
 
     def movable_disable(self):
+        """
+        Disable movable flag for all rectangles
+        """
         for rectangle in self.rectangles:
             rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
 
     def movable_enable(self):
+        """
+        Enable movable flag for all rectangles
+        """
         for rectangle in self.rectangles:
             rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
