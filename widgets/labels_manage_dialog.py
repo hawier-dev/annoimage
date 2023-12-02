@@ -25,7 +25,7 @@ class LabelsManageDialog(QDialog):
         self.list_widget = QListWidget()
         self.list_widget.setSelectionMode(QListWidget.ExtendedSelection)
         self.list_widget.setDragDropMode(QListWidget.InternalMove)
-        delegate = ListWidhetDelegate()
+        delegate = ListWidgetDelegate()
         self.list_widget.setItemDelegate(delegate)
         self.list_widget.addItems(current_labels)
         layout.addWidget(self.list_widget)
