@@ -13,7 +13,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import (
     QDragEnterEvent,
     QDropEvent,
-    QPainter, QMouseEvent,
+    QPainter,
+    QMouseEvent,
 )
 
 from constants import SURFACE_COLOR
@@ -203,9 +204,14 @@ class ImageView(QGraphicsView):
             self.setDragMode(QGraphicsView.ScrollHandDrag)
             self.setCursor(Qt.ClosedHandCursor)
             self.movable_disable()
-            press_event = QMouseEvent(QEvent.GraphicsSceneMousePress, event.pos(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+            press_event = QMouseEvent(
+                QEvent.GraphicsSceneMousePress,
+                event.pos(),
+                Qt.LeftButton,
+                Qt.LeftButton,
+                Qt.NoModifier,
+            )
             self.mousePressEvent(press_event)
-
 
         super().mousePressEvent(event)
 
