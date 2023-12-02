@@ -1,7 +1,7 @@
 import os
 
 from PIL import Image
-from PySide6.QtCore import QRectF, QPointF, Qt, Signal
+from PySide6.QtCore import QRectF, QPointF, Qt, Signal, QEvent
 from PySide6.QtWidgets import (
     QGraphicsView,
     QGraphicsScene,
@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import (
     QDragEnterEvent,
     QDropEvent,
-    QPainter,
+    QPainter, QMouseEvent,
 )
 
 from constants import SURFACE_COLOR
@@ -43,11 +43,6 @@ class ImageView(QGraphicsView):
         self.label_name = None
         self.label_id = None
         self.labels_names = []
-
-        # Variables for moving the image
-        self.moving_button_pressed = False
-        self.moving_last_position = None
-        self.space_pressed = False
 
         self.parent = parent
         self.loading_image = False
@@ -205,8 +200,12 @@ class ImageView(QGraphicsView):
                 and 0 <= self.start_point.y() <= self.image_height
             )
         elif event.button() == Qt.MiddleButton:
-            self.moving_button_pressed = True
-            self.moving_last_position = event.pos()
+            self.setDragMode(QGraphicsView.ScrollHandDrag)
+            self.setCursor(Qt.ClosedHandCursor)
+            self.movable_disable()
+            press_event = QMouseEvent(QEvent.GraphicsSceneMousePress, event.pos(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+            self.mousePressEvent(press_event)
+
 
         super().mousePressEvent(event)
 
@@ -214,15 +213,6 @@ class ImageView(QGraphicsView):
         if self.drawing:
             self.end_point = self.mapToScene(event.pos())
             self.draw_rectangle()
-
-        elif self.moving_button_pressed:
-            delta = event.pos() - self.moving_last_position
-            self.moving_last_position = event.pos()
-
-            value_x = self.horizontalScrollBar().value() - delta.x()
-            value_y = self.verticalScrollBar().value() - delta.y()
-            self.horizontalScrollBar().setValue(value_x)
-            self.verticalScrollBar().setValue(value_y)
 
         super().mouseMoveEvent(event)
 
@@ -269,6 +259,7 @@ class ImageView(QGraphicsView):
                 else:
                     self.scene().removeItem(self.rect_item)
                     return
+
             self.rectangles.append(rectangle_item)
             self.scene().addItem(rectangle_item)
             if self.rect_item in self.scene().items():
@@ -280,7 +271,12 @@ class ImageView(QGraphicsView):
             )
 
         elif event.button() == Qt.MiddleButton:
-            self.moving_button_pressed = False
+            self.setDragMode(QGraphicsView.NoDrag)
+            if self.current_mode == "select":
+                self.set_select_mode()
+
+            elif self.current_mode == "rect_selection":
+                self.set_rect_selection()
 
         super().mouseReleaseEvent(event)
 
@@ -289,20 +285,17 @@ class ImageView(QGraphicsView):
             self.delete_selected_rectangles(self.scene().selectedItems())
 
         elif event.key() == Qt.Key_Space:
-            self.space_pressed = True
             self.setDragMode(QGraphicsView.ScrollHandDrag)
             self.setCursor(Qt.ClosedHandCursor)
             self.movable_disable()
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Space and not event.isAutoRepeat():
-            self.space_pressed = False
             self.setDragMode(QGraphicsView.NoDrag)
             if self.current_mode == "select":
-                self.setCursor(Qt.ArrowCursor)
-                self.movable_enable()
+                self.set_select_mode()
             elif self.current_mode == "rect_selection":
-                self.setCursor(Qt.CrossCursor)
+                self.set_rect_selection()
 
     def draw_rectangle(self):
         if self.rect_item in self.scene().items():
@@ -348,20 +341,14 @@ class ImageView(QGraphicsView):
         self.setCursor(Qt.ArrowCursor)
         self.current_mode = "select"
 
-        for rectangle in self.rectangles:
-            rectangle.selectable = True
-            rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
-            rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+        self.movable_enable()
 
     def set_rect_selection(self):
         self.setDragMode(QGraphicsView.NoDrag)
         self.setCursor(Qt.CrossCursor)
         self.current_mode = "rect_selection"
 
-        for rectangle in self.rectangles:
-            rectangle.selectable = False
-            rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
-            rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, False)
+        self.movable_disable()
 
     def generate_label_name(self, label_str):
         label_names = [rectangle.label_name for rectangle in self.rectangles]
