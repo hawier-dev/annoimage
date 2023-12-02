@@ -356,6 +356,13 @@ class ImageView(QGraphicsView):
 
         self.movable_disable()
 
+    def set_polygon_selection(self):
+        self.setDragMode(QGraphicsView.NoDrag)
+        self.setCursor(Qt.CrossCursor)
+        self.current_mode = "polygon_selection"
+
+        self.movable_disable()
+
     def generate_label_name(self, label_str):
         label_names = [rectangle.label_name for rectangle in self.rectangles]
         i = 0

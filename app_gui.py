@@ -91,12 +91,21 @@ class AppGui(QVBoxLayout):
         self.select_button.setChecked(True)
         self.select_button.setShortcut("S")
 
+        # Rectangular selection button
         self.rectangle_button = QAction(
             QIcon("icons/rect_selection.png"), "Rectangle (R)", self
         )
         self.rectangle_button.triggered.connect(self.set_rect_selection)
         self.rectangle_button.setCheckable(True)
         self.rectangle_button.setShortcut("R")
+
+        # Polygonal selection button
+        self.polygon_button = QAction(
+            QIcon("icons/polygon_selection.png"), "Polygon (P)", self
+        )
+        self.polygon_button.triggered.connect(self.set_polygon_selection)
+        self.polygon_button.setCheckable(True)
+        self.polygon_button.setShortcut("P")
 
         self.previous_button = QAction(
             QIcon("icons/previous.png"), "Previous (Arrow Left)", self
@@ -114,6 +123,7 @@ class AppGui(QVBoxLayout):
 
         self.left_toolbar.addAction(self.select_button)
         self.left_toolbar.addAction(self.rectangle_button)
+        self.left_toolbar.addAction(self.polygon_button)
         self.left_toolbar.addAction(self.previous_button)
         self.left_toolbar.addAction(self.next_button)
         self.left_toolbar.addAction(self.save_button)
@@ -503,6 +513,11 @@ class AppGui(QVBoxLayout):
         self.select_button.setChecked(False)
         self.rectangle_button.setChecked(True)
         self.image_view.set_rect_selection()
+
+    def set_polygon_selection(self):
+        self.select_button.setChecked(False)
+        self.polygon_button.setChecked(True)
+        self.image_view.set_polygon_selection()
 
     def previous_image(self):
         current_image = self.image_view.url
