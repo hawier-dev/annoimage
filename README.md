@@ -10,5 +10,6 @@ AnnoImage is an image annotation tool that allows you to annotate images for obj
 - [x] Annotate images for object detection
 - [x] Export annotations to YOLO format
 - [ ] Export annotations to COCO format
+- [ ] AI assisted annotation
 
 **(Work in progress)**
