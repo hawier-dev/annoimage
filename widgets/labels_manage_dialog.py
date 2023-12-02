@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from utils.delegate import ListWidhetDelegate
+from utils.list_widget_delegate import ListWidgetDelegate
 
 
 class LabelsManageDialog(QDialog):
