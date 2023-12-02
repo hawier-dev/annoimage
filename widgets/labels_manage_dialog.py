@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from utils.delegate import ListWidhetDelegate
+
 
 class LabelsManageDialog(QDialog):
     def __init__(self, current_labels):
@@ -22,11 +24,15 @@ class LabelsManageDialog(QDialog):
 
         self.list_widget = QListWidget()
         self.list_widget.setSelectionMode(QListWidget.ExtendedSelection)
+        self.list_widget.setDragDropMode(QListWidget.InternalMove)
+        delegate = ListWidhetDelegate()
+        self.list_widget.setItemDelegate(delegate)
         self.list_widget.addItems(current_labels)
         layout.addWidget(self.list_widget)
 
         input_layout = QHBoxLayout()
         self.line_edit = QLineEdit()
+        self.line_edit.setPlaceholderText("New label name")
         self.line_edit.returnPressed.connect(self.add_item)
         self.line_edit.setFixedHeight(30)
         input_layout.addWidget(self.line_edit)
@@ -41,13 +47,19 @@ class LabelsManageDialog(QDialog):
         delete_button.clicked.connect(self.delete_selected_items)
         input_layout.addWidget(delete_button)
 
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(self.accept)
+
         layout.addLayout(input_layout)
+        layout.addWidget(ok_button)
 
         self.setLayout(layout)
 
     def add_item(self):
         text = self.line_edit.text()
-        if text:
+        if text and text not in [
+            self.list_widget.item(i).text() for i in range(self.list_widget.count())
+        ]:
             self.list_widget.addItem(text)
             self.line_edit.clear()
 

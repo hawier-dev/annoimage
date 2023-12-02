@@ -43,8 +43,12 @@ class ImageView(QGraphicsView):
         self.label_name = None
         self.label_id = None
         self.labels_names = []
-        self.middle_mouse_button_pressed = False
-        self.middle_mouse_last_position = None
+
+        # Variables for moving the image
+        self.moving_button_pressed = False
+        self.moving_last_position = None
+        self.space_pressed = False
+
         self.parent = parent
         self.loading_image = False
         self.setContentsMargins(5, 5, 5, 5)
@@ -145,6 +149,14 @@ class ImageView(QGraphicsView):
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
 
+    def update_label_names(self):
+        for rectangle in self.rectangles:
+            rectangle.label_name = (
+                self.labels_names[int(rectangle.label_id)]
+                + " "
+                + rectangle.label_name.split(" ")[-1]
+            )
+
     def load_labels(self):
         labels_file_path = os.path.splitext(self.url)[0] + ".txt"
         if os.path.exists(labels_file_path):
@@ -158,6 +170,13 @@ class ImageView(QGraphicsView):
                         float(w) * self.image_width,
                         float(h) * self.image_height,
                     )
+                    for i in range(int(label_id) + 1):
+                        try:
+                            self.labels_names[i]
+                        except IndexError:
+                            self.parent.labels_names.append(f"Unknown_{i}")
+                            self.parent.update_labels_names()
+
                     label_name = self.generate_label_name(
                         self.labels_names[int(label_id)]
                     )
@@ -182,12 +201,12 @@ class ImageView(QGraphicsView):
         if event.button() == Qt.LeftButton and self.current_mode == "rect_selection":
             self.start_point = self.mapToScene(event.pos())
             self.drawing = (
-                    0 <= self.start_point.x() <= self.image_width
-                    and 0 <= self.start_point.y() <= self.image_height
+                0 <= self.start_point.x() <= self.image_width
+                and 0 <= self.start_point.y() <= self.image_height
             )
         elif event.button() == Qt.MiddleButton:
-            self.middle_mouse_button_pressed = True
-            self.middle_mouse_last_position = event.pos()
+            self.moving_button_pressed = True
+            self.moving_last_position = event.pos()
 
         super().mousePressEvent(event)
 
@@ -196,9 +215,9 @@ class ImageView(QGraphicsView):
             self.end_point = self.mapToScene(event.pos())
             self.draw_rectangle()
 
-        elif self.middle_mouse_button_pressed:
-            delta = event.pos() - self.middle_mouse_last_position
-            self.middle_mouse_last_position = event.pos()
+        elif self.moving_button_pressed:
+            delta = event.pos() - self.moving_last_position
+            self.moving_last_position = event.pos()
 
             value_x = self.horizontalScrollBar().value() - delta.x()
             value_y = self.verticalScrollBar().value() - delta.y()
@@ -238,6 +257,7 @@ class ImageView(QGraphicsView):
                     self.label_name = add_label_dialog.label_name_input.text()
                     self.label_id = 0
                     self.labels_names.append(self.label_name)
+                    self.parent.labels_names.append(self.label_name)
                     self.parent.label_name_selector.addItem(self.label_name)
                     self.parent.label_name_selector.setCurrentText(self.label_name)
                     rectangle_item.label_name = self.generate_label_name(
@@ -260,13 +280,29 @@ class ImageView(QGraphicsView):
             )
 
         elif event.button() == Qt.MiddleButton:
-            self.middle_mouse_button_pressed = False
+            self.moving_button_pressed = False
 
         super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Delete:
             self.delete_selected_rectangles(self.scene().selectedItems())
+
+        elif event.key() == Qt.Key_Space:
+            self.space_pressed = True
+            self.setDragMode(QGraphicsView.ScrollHandDrag)
+            self.setCursor(Qt.ClosedHandCursor)
+            self.movable_disable()
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_Space and not event.isAutoRepeat():
+            self.space_pressed = False
+            self.setDragMode(QGraphicsView.NoDrag)
+            if self.current_mode == "select":
+                self.setCursor(Qt.ArrowCursor)
+                self.movable_enable()
+            elif self.current_mode == "rect_selection":
+                self.setCursor(Qt.CrossCursor)
 
     def draw_rectangle(self):
         if self.rect_item in self.scene().items():
@@ -366,6 +402,7 @@ class ImageView(QGraphicsView):
         """
         for rectangle in self.rectangles:
             rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
+            rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, False)
 
     def movable_enable(self):
         """
@@ -373,3 +410,4 @@ class ImageView(QGraphicsView):
         """
         for rectangle in self.rectangles:
             rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+            rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)

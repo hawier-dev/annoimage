@@ -297,7 +297,6 @@ class AppGui(QVBoxLayout):
             self.box_size_label.setText(f"{box_size[0], box_size[1]}")
 
     def set_label_name(self, label_name):
-        print(label_name)
         self.image_view.label_name = label_name
         try:
             index = 0
@@ -318,15 +317,16 @@ class AppGui(QVBoxLayout):
         ]
 
         self.update_labels_names()
+        self.image_view.update_label_names()
+        self.update_labels_list()
 
     def update_labels_names(self):
         current_items = [
             self.label_name_selector.itemText(i)
             for i in range(self.label_name_selector.count())
         ]
-        for label_name in self.labels_names:
-            if label_name not in current_items:
-                self.label_name_selector.addItem(label_name)
+        self.label_name_selector.clear()
+        self.label_name_selector.addItems(self.labels_names)
 
         self.image_view.labels_names = self.labels_names
 
