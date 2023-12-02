@@ -1,3 +1,4 @@
+from PySide6.QtCore import QPoint
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QDialog,
@@ -8,10 +9,12 @@ from PySide6.QtWidgets import (
     QScrollArea,
 )
 
+from widgets.centered_dialog import CenteredDialog
 
-class LabelsCountDialog(QDialog):
-    def __init__(self, label_names, label_paths: list, label_type="YOLO"):
-        super().__init__()
+
+class LabelsCountDialog(CenteredDialog):
+    def __init__(self, widget, label_names, label_paths: list, label_type="YOLO"):
+        super().__init__(widget)
 
         self.setWindowTitle("Labels count")
         self.setWindowIcon(QIcon("icons/logo.png"))
@@ -49,3 +52,4 @@ class LabelsCountDialog(QDialog):
         layout.addWidget(scroll_area)
 
         self.setLayout(layout)
+        self.center_pos()

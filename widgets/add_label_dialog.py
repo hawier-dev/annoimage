@@ -1,10 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLineEdit, QVBoxLayout, QHBoxLayout, QPushButton
 
+from widgets.centered_dialog import CenteredDialog
 
-class AddLabelDialog(QDialog):
-    def __init__(self):
-        super(AddLabelDialog, self).__init__()
+
+class AddLabelDialog(CenteredDialog):
+    def __init__(self, main_widget):
+        super(AddLabelDialog, self).__init__(main_widget)
         self.setWindowTitle("Add Label")
         self.setGeometry(100, 100, 400, 100)
 
@@ -31,3 +33,4 @@ class AddLabelDialog(QDialog):
         self.layout.addLayout(self.hor_layout)
 
         self.setLayout(self.layout)
+        self.center_pos()

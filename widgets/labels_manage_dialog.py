@@ -7,14 +7,15 @@ from PySide6.QtWidgets import (
     QPushButton,
     QDialog,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPoint
 
+from widgets.centered_dialog import CenteredDialog
 from utils.list_widget_delegate import ListWidgetDelegate
 
 
-class LabelsManageDialog(QDialog):
-    def __init__(self, current_labels):
-        super().__init__()
+class LabelsManageDialog(CenteredDialog):
+    def __init__(self, widget, current_labels):
+        super().__init__(widget)
 
         self.setWindowTitle("Manage labels")
         self.setGeometry(100, 100, 400, 300)
@@ -54,6 +55,7 @@ class LabelsManageDialog(QDialog):
         layout.addWidget(ok_button)
 
         self.setLayout(layout)
+        self.center_pos()
 
     def add_item(self):
         text = self.line_edit.text()

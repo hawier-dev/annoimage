@@ -1,10 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QDialog, QPushButton, QHBoxLayout
 
+from widgets.centered_dialog import CenteredDialog
 
-class YesOrNoDialog(QDialog):
-    def __init__(self, window_title, title, text, description="", cancel=False):
-        super(YesOrNoDialog, self).__init__()
+
+class YesOrNoDialog(CenteredDialog):
+    def __init__(self, widget,  window_title, title, text, description="", cancel=False):
+        super(YesOrNoDialog, self).__init__(widget)
 
         self.setWindowTitle(window_title)
         self.setGeometry(100, 100, 400, 100)
@@ -40,6 +42,7 @@ class YesOrNoDialog(QDialog):
         self.layout.addLayout(self.hor_layout)
 
         self.setLayout(self.layout)
+        self.center_pos()
 
     def on_cancel_clicked(self):
         self.canceled = True
