@@ -79,7 +79,7 @@ class RectangleItem(QGraphicsRectItem):
     def create_coco_label(self):
         json_dict = {}
         json_dict["id"] = self.label_id
-        json_dict["image_id"] = self.label_name
+        json_dict["image_id"] = None
         json_dict["category_id"] = self.label_name_id
         json_dict["segmentation"] = [
             [

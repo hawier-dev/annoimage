@@ -1,4 +1,5 @@
 import os
+import json
 
 from PySide6.QtCore import QSize, Qt, QEvent, QModelIndex
 from PySide6.QtGui import QAction, QIcon, QPixmap
@@ -34,6 +35,7 @@ class AppGui(QVBoxLayout):
         self.images = []
         self.labels_names = []
         self.saved = True
+        self.dataset_type = "YOLO"
 
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -321,7 +323,7 @@ class AppGui(QVBoxLayout):
             self.box_size_label.setText(f"{box_size[0], box_size[1]}")
 
     def set_dataset_type(self, dataset_type):
-        self.image_view.dataset_type = dataset_type
+        self.dataset_type = dataset_type
         if dataset_type == "YOLO":
             self.polygon_button.setEnabled(False)
             self.polygon_button.setVisible(False)
@@ -571,22 +573,72 @@ class AppGui(QVBoxLayout):
             return
         os.makedirs(output_path, exist_ok=True)
 
-        output_label_path = os.path.join(
-            output_path,
-            os.path.splitext(os.path.basename(self.image_view.url))[0] + ".txt",
-        )
         try:
-            labels = [rectangle.label_yolo for rectangle in self.image_view.labels]
+            output_label_path = os.path.join(
+                output_path,
+                os.path.splitext(os.path.basename(self.image_view.url))[0] + ".txt",
+            )
 
-            with open(output_label_path, "w") as file:
-                for label in labels:
-                    file.write(f"{label}\n")
-                    print(label)
+            if self.dataset_type == "YOLO":
+                labels = [label.label_yolo for label in self.image_view.labels]
 
-            classes_file = os.path.join(output_path, "classes.txt")
-            with open(classes_file, "w") as file:
-                for label_name in label_names:
-                    file.write(f"{label_name}\n")
+                with open(output_label_path, "w") as file:
+                    for label in labels:
+                        file.write(f"{label}\n")
+                        print(label)
+
+                classes_file = os.path.join(output_path, "classes.txt")
+                with open(classes_file, "w") as file:
+                    for label_name in label_names:
+                        file.write(f"{label_name}\n")
+
+            elif self.dataset_type == "COCO":
+                output_label_path = os.path.join(
+                    output_path,
+                    "dataset.json",
+                )
+
+                file_content = {
+                    "info": {},
+                    "licenses": [],
+                    "images": [],
+                    "annotations": [],
+                    "categories": [],
+                }
+                labels = [label.label_coco for label in self.image_view.labels]
+
+                if os.path.exists(output_label_path):
+                    with open(output_label_path, "r") as file:
+                        file_content = json.load(file)
+
+                image_id = len(file_content["images"])
+                if os.path.basename(self.image_view.url) not in [
+                    image["file_name"]
+                    for image in file_content["images"]
+                    if image["file_name"] == os.path.basename(self.image_view.url)
+                ]:
+                    file_content["images"].append(
+                        {
+                            "id": image_id,
+                            "file_name": os.path.basename(self.image_view.url),
+                            "width": self.image_view.image_width,
+                            "height": self.image_view.image_height,
+                        }
+                    )
+                else:
+                    image_id = [
+                        image["id"]
+                        for image in file_content["images"]
+                        if image["file_name"] == os.path.basename(self.image_view.url)
+                    ][0]
+
+                with open(output_label_path, "w") as file:
+                    json.dump(file_content, file, indent=4)
+
+                classes_file = os.path.join(output_path, "classes.txt")
+                with open(classes_file, "w") as file:
+                    for label_name in label_names:
+                        file.write(f"{label_name}\n")
 
             self.image_view.current_saved_labels = labels
             self.set_saved(labels == self.image_view.current_saved_labels)
