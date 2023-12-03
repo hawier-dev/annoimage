@@ -25,6 +25,7 @@ class MyApp(QMainWindow):
         saved = self.app_gui.saved
         if not saved:
             yes_no_dialog = YesOrNoDialog(
+                self,
                 window_title="Save changes?",
                 title="Save changes?",
                 text="You have unsaved changes. Do you want to save them?",
@@ -36,7 +37,7 @@ class MyApp(QMainWindow):
             elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
                 self.close()
             else:
-                return
+                pass
 
 
 def create_palette():

@@ -8,6 +8,10 @@ FOREGROUND_COLOR = "#ffffff"
 PRIMARY_COLOR = "#D16666"
 HOVER_COLOR = "#643030"
 
+TOOLBAR_ICON_SIZE = 18
+RIGHT_MAXW = 200
+LOGO_SIZE = 24
+
 
 def hex_to_rgb(color):
     color = color.replace("#", "")

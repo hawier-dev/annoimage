@@ -46,13 +46,20 @@ class AppGui(QVBoxLayout):
         self.app_logo = QLabel()
         self.app_logo.setPixmap(
             QPixmap("icons/logo.png").scaled(
-                24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                LOGO_SIZE, LOGO_SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
         )
 
         self.app_name = QLabel(TITLE)
         self.app_name.setStyleSheet("font-size: 15px;")
 
+        # Dataset type selector
+        self.dataset_type_selector = QComboBox()
+        self.dataset_type_selector.addItems(["YOLO", "COCO"])
+        self.dataset_type_selector.setFixedWidth(100)
+        self.dataset_type_selector.currentTextChanged.connect(self.set_dataset_type)
+
+        # Open directory button
         self.open_directory_button = QPushButton("Open directory")
         self.open_directory_button.clicked.connect(self.open_directory)
 
@@ -66,6 +73,9 @@ class AppGui(QVBoxLayout):
         self.top_bar_layout.addSpacing(8)
         self.top_bar_layout.addWidget(self.app_logo)
         self.top_bar_layout.addWidget(self.app_name)
+        self.top_bar_layout.addSpacing(8)
+        self.top_bar_layout.addWidget(self.dataset_type_selector)
+
         self.top_bar_layout.addStretch()
         self.top_bar_layout.addWidget(self.label_name_selector)
         self.top_bar_layout.addWidget(self.open_directory_button)
@@ -79,9 +89,9 @@ class AppGui(QVBoxLayout):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(5)
 
-        # Left toolbar
+        # Left toolbars
         self.left_toolbar = QToolBar("Tools")
-        self.left_toolbar.setIconSize(QSize(18, 18))
+        self.left_toolbar.setIconSize(QSize(TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE))
         self.left_toolbar.setMovable(False)
         self.left_toolbar.setOrientation(Qt.Vertical)
 
@@ -101,11 +111,13 @@ class AppGui(QVBoxLayout):
 
         # Polygonal selection button
         self.polygon_button = QAction(
-            QIcon("icons/polygon_selection.png"), "Polygon (P)", self
+            QIcon("icons/polygon_selection.png"), "Polygon (P) (ONLY IN COCO)", self
         )
         self.polygon_button.triggered.connect(self.set_polygon_selection)
         self.polygon_button.setCheckable(True)
         self.polygon_button.setShortcut("P")
+        self.polygon_button.setEnabled(False)
+        self.polygon_button.setVisible(False)
 
         self.previous_button = QAction(
             QIcon("icons/previous.png"), "Previous (Arrow Left)", self
@@ -134,7 +146,7 @@ class AppGui(QVBoxLayout):
         self.image_view = ImageView(parent=self)
         self.image_view.label_added.connect(self.update_labels_list)
         self.image_view.updated_labels.connect(self.update_labels_list)
-        self.image_view.drawing_rectangle.connect(self.update_box_size_label)
+        self.image_view.drawing_label.connect(self.update_box_size_label)
         self.image_view.on_image_loaded.connect(self.set_current_image)
         self.image_view.scene().selectionChanged.connect(self.update_selection)
 
@@ -144,8 +156,8 @@ class AppGui(QVBoxLayout):
 
         self.labels_label = QLabel("Labels")
         self.labels_list = ListWidget()
-        self.labels_list.setMaximumWidth(200)
-        self.labels_list.setSelectionMode(QListWidget.ExtendedSelection)
+        self.labels_list.setMaximumWidth(RIGHT_MAXW)
+        self.labels_list.setSelectionMode(QListWidget.SingleSelection)
         self.labels_list.itemSelectionChanged.connect(self.select_labels_from_list)
         self.labels_list.installEventFilter(self)
         self.labels_list.delete_pressed.connect(self.delete_selected_labels)
@@ -156,7 +168,7 @@ class AppGui(QVBoxLayout):
 
         self.images_label = QLabel("Images")
         self.images_list = ListWidget()
-        self.images_list.setMaximumWidth(200)
+        self.images_list.setMaximumWidth(RIGHT_MAXW)
         self.images_list.setSelectionMode(QListWidget.ExtendedSelection)
         self.images_list.doubleClicked.connect(self.load_image)
         self.images_list.installEventFilter(self)
@@ -216,6 +228,7 @@ class AppGui(QVBoxLayout):
 
         self.status_bar.setLayout(self.status_bar_layout)
 
+        self.addSpacing(5)
         self.addWidget(self.top_bar)
         self.addLayout(self.main_layout)
         self.addWidget(self.bottom_bar)
@@ -279,6 +292,7 @@ class AppGui(QVBoxLayout):
     def load_image(self, image):
         if not self.saved:
             yes_no_dialog = YesOrNoDialog(
+                self.main_window,
                 "Save",
                 "You have unsaved changes.",
                 "Do you want to save them?",
@@ -306,6 +320,15 @@ class AppGui(QVBoxLayout):
         else:
             self.box_size_label.setText(f"{box_size[0], box_size[1]}")
 
+    def set_dataset_type(self, dataset_type):
+        self.image_view.dataset_type = dataset_type
+        if dataset_type == "YOLO":
+            self.polygon_button.setEnabled(False)
+            self.polygon_button.setVisible(False)
+        elif dataset_type == "COCO":
+            self.polygon_button.setEnabled(True)
+            self.polygon_button.setVisible(True)
+
     def set_label_name(self, label_name):
         self.image_view.label_name = label_name
         try:
@@ -319,7 +342,7 @@ class AppGui(QVBoxLayout):
             self.image_view.label_id = None
 
     def manage_labels(self):
-        labels_manage_dialog = LabelsManageDialog(self.labels_names)
+        labels_manage_dialog = LabelsManageDialog(self.main_window, self.labels_names)
         labels_manage_dialog.exec_()
         self.labels_names = [
             labels_manage_dialog.list_widget.item(i).text()
@@ -362,6 +385,7 @@ class AppGui(QVBoxLayout):
                 self.select_output_path(directory)
             else:
                 yes_or_no_dialog = YesOrNoDialog(
+                    self.main_window,
                     "Change output path",
                     "Do you want to change output path to selected directory?",
                     "Label files will be loaded and saved in this directory.",
@@ -393,6 +417,7 @@ class AppGui(QVBoxLayout):
                 self.select_output_path(os.path.dirname(file_paths[0]))
             else:
                 yes_or_no_dialog = YesOrNoDialog(
+                    self.main_window,
                     "Change output path",
                     "Do you want to change output path to directory with selected images?",
                     "Label files will be loaded and saved in this directory.",
@@ -409,6 +434,7 @@ class AppGui(QVBoxLayout):
         if os.path.exists(classes_file):
             if self.labels_names:
                 yes_no_dialog = YesOrNoDialog(
+                    self.main_window,
                     "Load classes",
                     "Do you want to load class names from selected directory?",
                     "Current class names will be overwritten.",
@@ -462,7 +488,7 @@ class AppGui(QVBoxLayout):
         selected_labels = [item.text() for item in selected_items]
         rectangles_to_delete = [
             rectangle
-            for rectangle in self.image_view.rectangles
+            for rectangle in self.image_view.labels
             if rectangle.label_name in selected_labels
         ]
         self.image_view.delete_selected_rectangles(rectangles_to_delete)
@@ -480,15 +506,15 @@ class AppGui(QVBoxLayout):
 
     def update_labels_list(self, *args):
         self.labels_list.clear()
-        labels = [rectangle.label_line for rectangle in self.image_view.rectangles]
+        labels = [rectangle.label_yolo for rectangle in self.image_view.labels]
 
         self.set_saved(labels == self.image_view.current_saved_labels)
 
-        for rectangle in self.image_view.rectangles:
+        for rectangle in self.image_view.labels:
             self.labels_list.addItem(rectangle.label_name)
 
     def update_selection(self):
-        for rectangle in self.image_view.rectangles:
+        for rectangle in self.image_view.labels:
             if rectangle.isSelected():
                 self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[
                     0
@@ -506,16 +532,19 @@ class AppGui(QVBoxLayout):
 
     def set_select_mode(self):
         self.select_button.setChecked(True)
+        self.polygon_button.setChecked(False)
         self.rectangle_button.setChecked(False)
         self.image_view.set_select_mode()
 
     def set_rect_selection(self):
         self.select_button.setChecked(False)
+        self.polygon_button.setChecked(False)
         self.rectangle_button.setChecked(True)
         self.image_view.set_rect_selection()
 
     def set_polygon_selection(self):
         self.select_button.setChecked(False)
+        self.rectangle_button.setChecked(False)
         self.polygon_button.setChecked(True)
         self.image_view.set_polygon_selection()
 
@@ -547,7 +576,7 @@ class AppGui(QVBoxLayout):
             os.path.splitext(os.path.basename(self.image_view.url))[0] + ".txt",
         )
         try:
-            labels = [rectangle.label_line for rectangle in self.image_view.rectangles]
+            labels = [rectangle.label_yolo for rectangle in self.image_view.labels]
 
             with open(output_label_path, "w") as file:
                 for label in labels:
@@ -572,7 +601,9 @@ class AppGui(QVBoxLayout):
         )
 
         if os.path.exists(label_file):
-            labels_count_dialog = LabelsCountDialog(self.labels_names, [label_file])
+            labels_count_dialog = LabelsCountDialog(
+                self.main_window, self.labels_names, [label_file]
+            )
             labels_count_dialog.exec_()
 
     def count_all_labels(self):
@@ -589,5 +620,7 @@ class AppGui(QVBoxLayout):
         ]
 
         if label_files:
-            labels_count_dialog = LabelsCountDialog(self.labels_names, label_files)
+            labels_count_dialog = LabelsCountDialog(
+                self.main_window, self.labels_names, label_files
+            )
             labels_count_dialog.exec_()
