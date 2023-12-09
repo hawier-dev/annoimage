@@ -1,8 +1,9 @@
-import os
 import json
+import os
 
-from PySide6.QtCore import QSize, Qt, QEvent, QModelIndex
-from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6 import QtWidgets
+from PySide6.QtCore import QSize, Qt, QEvent, QModelIndex, QPointF
+from PySide6.QtGui import QAction, QIcon, QPixmap, QKeySequence
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -17,14 +18,17 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QMenu,
     QWidgetAction,
-    QDialog,
+    QDialog, QGraphicsRectItem, QProgressDialog, QMenuBar,
 )
+from PIL import Image
 
 from constants import *
+from models.label_image import LabelImage
 from widgets.image_view import ImageView
 from widgets.labels_count_dialog import LabelsCountDialog
 from widgets.labels_manage_dialog import LabelsManageDialog
 from widgets.list_widget import ListWidget
+from widgets.rectangle_item import RectangleItem
 from widgets.yes_or_no_dialog import YesOrNoDialog
 
 
@@ -34,10 +38,39 @@ class AppGui(QVBoxLayout):
         self.main_window = parent
         self.images = []
         self.labels_names = []
+        self.labels = []
         self.saved = True
-        self.dataset_type = "YOLO"
 
         self.setContentsMargins(0, 0, 0, 0)
+
+        menubar = QMenuBar()
+
+        # Create the File menu and add actions
+        file_menu = menubar.addMenu('File')
+        open_project_action = QAction('Open Project', self)
+        open_project_action.setShortcut(QKeySequence.Open)
+        file_menu.addAction(open_project_action)
+
+        create_project_action = QAction('Create Project', self)
+        create_project_action.setShortcut(QKeySequence.New)
+        file_menu.addAction(create_project_action)
+
+        quit_action = QAction('Quit', self)
+        quit_action.setShortcut(QKeySequence.Quit)
+        file_menu.addAction(quit_action)
+
+        # Create the Help menu and add actions
+        help_menu = menubar.addMenu('Help')
+        about_action = QAction('About', self)
+        help_menu.addAction(about_action)
+
+        # Connect the actions to their respective functions
+        open_project_action.triggered.connect(self.open_project)
+        create_project_action.triggered.connect(self.create_project)
+        quit_action.triggered.connect(self.quit)
+        about_action.triggered.connect(self.about)
+
+        self.main_window.setMenuBar(menubar)
 
         # Top bar with app name and qcombobox with annotation types
         self.top_bar = QWidget()
@@ -61,13 +94,6 @@ class AppGui(QVBoxLayout):
         self.dataset_type_selector.setFixedWidth(100)
         self.dataset_type_selector.currentTextChanged.connect(self.set_dataset_type)
 
-        # Open directory button
-        self.open_directory_button = QPushButton("Open directory")
-        self.open_directory_button.clicked.connect(self.open_directory)
-
-        self.open_file_button = QPushButton("Open files")
-        self.open_file_button.clicked.connect(self.open_file)
-
         self.label_name_selector = QComboBox()
         self.label_name_selector.setFixedWidth(100)
         self.label_name_selector.currentTextChanged.connect(self.set_label_name)
@@ -80,8 +106,6 @@ class AppGui(QVBoxLayout):
 
         self.top_bar_layout.addStretch()
         self.top_bar_layout.addWidget(self.label_name_selector)
-        self.top_bar_layout.addWidget(self.open_directory_button)
-        self.top_bar_layout.addWidget(self.open_file_button)
         self.top_bar_layout.addSpacing(8)
 
         self.top_bar.setLayout(self.top_bar_layout)
@@ -197,18 +221,18 @@ class AppGui(QVBoxLayout):
         self.bottom_bar_layout = QHBoxLayout()
         self.bottom_bar_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.output_path_line_edit = QLineEdit()
-        self.output_path_line_edit.setPlaceholderText("Output path")
-        self.output_path_line_edit.setFixedHeight(30)
-        self.output_path_line_edit.setReadOnly(True)
+        self.label_path_line_edit = QLineEdit()
+        self.label_path_line_edit.setPlaceholderText("Label file path")
+        self.label_path_line_edit.setFixedHeight(30)
+        self.label_path_line_edit.setReadOnly(True)
 
-        self.output_path_button = QPushButton("...")
-        self.output_path_button.setFixedSize(30, 30)
-        self.output_path_button.clicked.connect(self.select_output_path)
+        self.label_path_button = QPushButton("...")
+        self.label_path_button.setFixedSize(30, 30)
+        self.label_path_button.clicked.connect(self.select_output_path)
 
         self.bottom_bar_layout.addSpacing(8)
-        self.bottom_bar_layout.addWidget(self.output_path_line_edit)
-        self.bottom_bar_layout.addWidget(self.output_path_button)
+        self.bottom_bar_layout.addWidget(self.label_path_line_edit)
+        self.bottom_bar_layout.addWidget(self.label_path_button)
         self.bottom_bar_layout.addSpacing(8)
 
         self.bottom_bar.setLayout(self.bottom_bar_layout)
@@ -291,30 +315,27 @@ class AppGui(QVBoxLayout):
             return True
         return super(QVBoxLayout, self).eventFilter(source, event)
 
-    def load_image(self, image):
-        if not self.saved:
-            yes_no_dialog = YesOrNoDialog(
-                self.main_window,
-                "Save",
-                "You have unsaved changes.",
-                "Do you want to save them?",
-                cancel=True,
-            )
-            result = yes_no_dialog.exec_()
-            if result == YesOrNoDialog.Accepted:
-                self.save_labels()
-            elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
-                self.set_saved(True)
-            else:
-                return
+    def open_project(self):
+        print("Open Project clicked")
 
+    def create_project(self):
+        print("Create Project clicked")
+
+    def quit(self):
+        print("Quit clicked")
+
+    def about(self):
+        print("About clicked")
+
+
+    def load_image(self, image):
         if type(image) is QModelIndex:
             self.image_view.load_image(self.images[image.row()])
-        elif type(image) is str:
+        elif type(image) is list:
             self.image_view.load_image(image)
 
-    def set_current_image(self, path):
-        self.images_list.setCurrentRow(self.images.index(path))
+    def set_current_image(self, label_image: LabelImage):
+        self.images_list.setCurrentRow(self.images.index(label_image))
 
     def update_box_size_label(self, box_size: tuple, drawing: bool):
         if not drawing:
@@ -323,7 +344,7 @@ class AppGui(QVBoxLayout):
             self.box_size_label.setText(f"{box_size[0], box_size[1]}")
 
     def set_dataset_type(self, dataset_type):
-        self.dataset_type = dataset_type
+        self.image_view.dataset_type = dataset_type
         if dataset_type == "YOLO":
             self.polygon_button.setEnabled(False)
             self.polygon_button.setVisible(False)
@@ -356,14 +377,76 @@ class AppGui(QVBoxLayout):
         self.update_labels_list()
 
     def update_labels_names(self):
-        current_items = [
-            self.label_name_selector.itemText(i)
-            for i in range(self.label_name_selector.count())
-        ]
         self.label_name_selector.clear()
         self.label_name_selector.addItems(self.labels_names)
 
         self.image_view.labels_names = self.labels_names
+
+    def load_labels(self, dataset_type, path, images):
+        progress_dialog = QProgressDialog("Loading images...", "Cancel", 0, len(images), self.main_window)
+        progress_dialog.setWindowModality(Qt.WindowModal)
+        if dataset_type == "yolo":
+            try:
+                for index, image in enumerate(images):
+                    if progress_dialog.wasCanceled():
+                        break
+
+                    img = Image.open(image)
+                    label_file = os.path.splitext(image)[0] + ".txt"
+                    labels = []
+                    if os.path.exists(label_file):
+                        with open(label_file, "r") as labels_file:
+                            for line in labels_file.readlines():
+                                line = line.strip()
+                                label_id, x, y, w, h = line.split(" ")
+                                x, y, width, height = (
+                                    float(x) * img.width,
+                                    float(y) * img.height,
+                                    float(w) * img.width,
+                                    float(h) * img.height,
+                                )
+                                for i in range(int(label_id) + 1):
+                                    try:
+                                        self.labels_names[i]
+                                    except IndexError:
+                                        self.labels_names.append(f"Unknown_{i}")
+                                        self.update_labels_names()
+
+                                label_name = self.labels_names[int(label_id)]
+
+                                item = RectangleItem(
+                                    QPointF(x - width / 2, y - height / 2),
+                                    QPointF(x + width / 2, y + height / 2),
+                                    label_name,
+                                    label_id,
+                                    img.width,
+                                    img.height,
+                                    self,
+                                )
+                                if self.image_view.current_mode == "select":
+                                    item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+                                    item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+
+                                labels.append(item)
+
+                    progress_dialog.setValue(index)
+                    QtWidgets.QApplication.processEvents()
+
+                    self.images.append(LabelImage(index, image, labels))
+
+                progress_dialog.setValue(len(images))
+                QtWidgets.QApplication.processEvents()
+
+            finally:
+                print(self.images)
+                progress_dialog.close()
+
+        # elif dataset_type == "coco":
+        #     labels_file_path = os.path.join(self.output_path)
+        #     if os.path.exists(labels_file_path):
+        #         with open(labels_file_path, "r") as labels_file:
+        #             data = json.load(labels_file)
+        #             self.coco_dataset = data
 
     def open_directory(self):
         file_dialog = QFileDialog()
@@ -373,17 +456,18 @@ class AppGui(QVBoxLayout):
         )
 
         if directory:
-            self.images = [
+            images = [
                 os.path.join(directory, file)
                 for file in os.listdir(directory)
-                if file.endswith(".jpg")
+                if file.endswith((".jpg", ".jpeg", ".png", ".tif"))
             ]
             self.images_list.clear()
             self.images_list.addItems(
-                [os.path.basename(image) for image in self.images]
+                [os.path.basename(image) for image in images]
             )
+            self.load_labels("yolo", directory, images)
 
-            if self.output_path_line_edit.text() == "":
+            if self.label_path_line_edit.text() == "":
                 self.select_output_path(directory)
             else:
                 yes_or_no_dialog = YesOrNoDialog(
@@ -397,39 +481,27 @@ class AppGui(QVBoxLayout):
                 if result == QDialog.Accepted:
                     self.select_output_path(directory)
 
-            self.load_image(self.images[0])
-
-        # self.manage_labels()
 
     def open_file(self):
         file_dialog = QFileDialog()
 
-        file_paths, _ = file_dialog.getOpenFileNames(
-            None, "Select images", "", "Image Files (*.jpg *.jpeg *.png *.tif)"
-        )
+        # TODO: Change this to open dataset file
 
-        if file_paths:
-            self.images = file_paths
-            self.images_list.clear()
-            self.images_list.addItems(
-                [os.path.basename(image) for image in self.images]
-            )
-
-            if self.output_path_line_edit.text() == "":
-                self.select_output_path(os.path.dirname(file_paths[0]))
-            else:
-                yes_or_no_dialog = YesOrNoDialog(
-                    self.main_window,
-                    "Change output path",
-                    "Do you want to change output path to directory with selected images?",
-                    "Label files will be loaded and saved in this directory.",
-                )
-                result = yes_or_no_dialog.exec_()
-
-                if result == QDialog.Accepted:
-                    self.select_output_path(os.path.dirname(file_paths[0]))
-
-            self.load_image(self.images[0])
+    def update_dataset_images(self):
+        current_images = [
+            image["file_name"] for image in self.image_view.coco_dataset["images"]
+        ]
+        for image in self.images:
+            if os.path.basename(image) not in current_images:
+                img = Image.open(image)
+                image_dict = {
+                    "id": len(self.image_view.coco_dataset["images"]) + 1,
+                    "width": img.width,
+                    "height": img.height,
+                    "file_name": os.path.basename(image),
+                    "license": 1,
+                }
+                self.image_view.coco_dataset["images"].append(image_dict)
 
     def load_classes_from_directory(self, directory):
         classes_file = os.path.join(directory, "classes.txt")
@@ -469,7 +541,8 @@ class AppGui(QVBoxLayout):
 
         if directory:
             os.makedirs(directory, exist_ok=True)
-            self.output_path_line_edit.setText(directory)
+            self.image_view.output_path = directory
+            self.label_path_line_edit.setText(directory)
             self.image_view.output_path = directory
             self.load_classes_from_directory(directory)
 
@@ -565,7 +638,7 @@ class AppGui(QVBoxLayout):
                 self.load_image(self.images[current_image_index + 1])
 
     def save_labels(self):
-        output_path = self.output_path_line_edit.text()
+        output_path = self.label_path_line_edit.text()
         label_names = self.labels_names
 
         if output_path == "":
@@ -573,72 +646,22 @@ class AppGui(QVBoxLayout):
             return
         os.makedirs(output_path, exist_ok=True)
 
+        output_label_path = os.path.join(
+            output_path,
+            os.path.splitext(os.path.basename(self.image_view.url))[0] + ".txt",
+        )
         try:
-            output_label_path = os.path.join(
-                output_path,
-                os.path.splitext(os.path.basename(self.image_view.url))[0] + ".txt",
-            )
+            labels = [rectangle.label_yolo for rectangle in self.image_view.labels]
 
-            if self.dataset_type == "YOLO":
-                labels = [label.label_yolo for label in self.image_view.labels]
+            with open(output_label_path, "w") as file:
+                for label in labels:
+                    file.write(f"{label}\n")
+                    print(label)
 
-                with open(output_label_path, "w") as file:
-                    for label in labels:
-                        file.write(f"{label}\n")
-                        print(label)
-
-                classes_file = os.path.join(output_path, "classes.txt")
-                with open(classes_file, "w") as file:
-                    for label_name in label_names:
-                        file.write(f"{label_name}\n")
-
-            elif self.dataset_type == "COCO":
-                output_label_path = os.path.join(
-                    output_path,
-                    "dataset.json",
-                )
-
-                file_content = {
-                    "info": {},
-                    "licenses": [],
-                    "images": [],
-                    "annotations": [],
-                    "categories": [],
-                }
-                labels = [label.label_coco for label in self.image_view.labels]
-
-                if os.path.exists(output_label_path):
-                    with open(output_label_path, "r") as file:
-                        file_content = json.load(file)
-
-                image_id = len(file_content["images"])
-                if os.path.basename(self.image_view.url) not in [
-                    image["file_name"]
-                    for image in file_content["images"]
-                    if image["file_name"] == os.path.basename(self.image_view.url)
-                ]:
-                    file_content["images"].append(
-                        {
-                            "id": image_id,
-                            "file_name": os.path.basename(self.image_view.url),
-                            "width": self.image_view.image_width,
-                            "height": self.image_view.image_height,
-                        }
-                    )
-                else:
-                    image_id = [
-                        image["id"]
-                        for image in file_content["images"]
-                        if image["file_name"] == os.path.basename(self.image_view.url)
-                    ][0]
-
-                with open(output_label_path, "w") as file:
-                    json.dump(file_content, file, indent=4)
-
-                classes_file = os.path.join(output_path, "classes.txt")
-                with open(classes_file, "w") as file:
-                    for label_name in label_names:
-                        file.write(f"{label_name}\n")
+            classes_file = os.path.join(output_path, "classes.txt")
+            with open(classes_file, "w") as file:
+                for label_name in label_names:
+                    file.write(f"{label_name}\n")
 
             self.image_view.current_saved_labels = labels
             self.set_saved(labels == self.image_view.current_saved_labels)
@@ -648,7 +671,7 @@ class AppGui(QVBoxLayout):
 
     def count_labels(self, path):
         label_file = os.path.join(
-            self.output_path_line_edit.text(),
+            self.label_path_line_edit.text(),
             os.path.splitext(os.path.basename(path))[0] + ".txt",
         )
 
@@ -661,7 +684,7 @@ class AppGui(QVBoxLayout):
     def count_all_labels(self):
         label_files = [
             os.path.join(
-                self.output_path_line_edit.text(),
+                self.label_path_line_edit.text(),
                 os.path.splitext(os.path.basename(image))[0] + ".txt",
             )
             for image in self.images

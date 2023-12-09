@@ -1,3 +1,5 @@
+import datetime
+import json
 import os
 
 from PIL import Image
@@ -19,11 +21,12 @@ from PySide6.QtGui import (
     QPolygonF,
 )
 
-from constants import SURFACE_COLOR
+from constants import SURFACE_COLOR, TITLE, VERSION
+from models.label_image import LabelImage
 from widgets.add_label_dialog import AddLabelDialog
-from widgets.image_loader import ImageLoader
 from widgets.polygon_item import PolygonItem
 from widgets.rectangle_item import RectangleItem
+from models.image_loader import ImageLoader
 
 Image.MAX_IMAGE_PIXELS = 933120000
 
@@ -32,12 +35,13 @@ class ImageView(QGraphicsView):
     label_added = Signal(list)
     updated_labels = Signal(list)
     drawing_label = Signal(tuple, bool)
-    on_image_loaded = Signal(str)
+    on_image_loaded = Signal(LabelImage)
 
     def __init__(self, parent=None):
         super().__init__()
         self.zoom_factor = 0
-        self.url = None
+        self.image = None
+        self.image_loader = None
         self.drawing = False
         self.start_point = None
         self.end_point = None
@@ -49,6 +53,24 @@ class ImageView(QGraphicsView):
         self.labels_names = []
         self.polygon_points = []
         self.polygon_item = None
+
+        self.output_path = None
+
+        self.coco_dataset = {
+            "info": {
+                "description": "Dataset for image segmentation",
+                "url": "",
+                "version": "1.0",
+                "year": 2021,
+                "contributor": "",
+                "date_created": datetime.datetime.now().strftime("%Y/%m/%d"),
+                "creator": f"{TITLE} {VERSION}",
+            },
+            "licenses": [],
+            "images": [],
+            "annotations": [],
+            "categories": [],
+        }
 
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
@@ -106,7 +128,7 @@ class ImageView(QGraphicsView):
         self.zoom_factor *= zoom_factor
         self.scale(zoom_factor, zoom_factor)
 
-    def load_image(self, file_path):
+    def load_image(self, label_image: LabelImage):
         if self.loading_image:
             return
 
@@ -117,9 +139,10 @@ class ImageView(QGraphicsView):
             self.height() // 2 - self.loading_label.height() // 2,
         )
         self.loading_label.setVisible(True)
-        self.url = file_path
+        self.image = label_image
+        print(self.image)
 
-        self.image_loader = ImageLoader(file_path)
+        self.image_loader = ImageLoader(label_image.path)
         self.image_loader.loaded.connect(self.image_loaded)
         self.image_loader.start()
 
@@ -142,13 +165,25 @@ class ImageView(QGraphicsView):
 
         self.labels = []
         self.current_saved_labels = []
-        self.load_labels()
 
         self.updated_labels.emit(self.labels)
-        self.on_image_loaded.emit(self.url)
+        self.on_image_loaded.emit(self.image)
 
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
+
+    def load_labels(self, labels):
+        self.labels = labels
+        self.current_saved_labels = labels
+        self.scene().clear()
+        self.scene().addPixmap(self.image)
+        self.fitInView(self.scene().items()[0], Qt.KeepAspectRatio)
+        self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
+        self.scene().addRect(0, 0, self.image_width, self.image_height)
+        self.scene().addRect(0, 0, self.image_width, self.image_height)
+
+        for item in self.labels:
+            self.scene().addItem(item)
 
     def update_label_names(self):
         for rectangle in self.labels:
@@ -165,48 +200,6 @@ class ImageView(QGraphicsView):
                 label_id += 1
 
         return label_id
-
-    def load_labels(self):
-        labels_file_path = os.path.splitext(self.url)[0] + ".txt"
-        if os.path.exists(labels_file_path):
-            with open(labels_file_path, "r") as labels_file:
-                for line in labels_file.readlines():
-                    line = line.strip()
-                    label_id, x, y, w, h = line.split(" ")
-                    x, y, width, height = (
-                        float(x) * self.image_width,
-                        float(y) * self.image_height,
-                        float(w) * self.image_width,
-                        float(h) * self.image_height,
-                    )
-                    for i in range(int(label_id) + 1):
-                        try:
-                            self.labels_names[i]
-                        except IndexError:
-                            self.parent.labels_names.append(f"Unknown_{i}")
-                            self.parent.update_labels_names()
-
-                    label_name = self.generate_label_name(
-                        self.labels_names[int(label_id)]
-                    )
-
-                    rectangle = RectangleItem(
-                        self.get_label_id(),
-                        QPointF(x - width / 2, y - height / 2),
-                        QPointF(x + width / 2, y + height / 2),
-                        label_name,
-                        label_id,
-                        self.image_width,
-                        self.image_height,
-                        self,
-                    )
-                    if self.current_mode == "select":
-                        rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
-                        rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
-
-                    self.labels.append(rectangle)
-                    self.current_saved_labels.append(line)
-                    self.scene().addItem(rectangle)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and self.current_mode == "select":

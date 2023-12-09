@@ -9,7 +9,6 @@ class RectangleItem(QGraphicsRectItem):
 
     def __init__(
         self,
-        label_id,
         start_point,
         end_point,
         label_name,
@@ -21,7 +20,6 @@ class RectangleItem(QGraphicsRectItem):
     ):
         super().__init__()
         self.setRect(self.calculate_rectangle(start_point, end_point))
-        self.label_id = label_id
         self.image_view = parent
 
         self.temporary = temporary
@@ -77,26 +75,25 @@ class RectangleItem(QGraphicsRectItem):
         return label_string
 
     def create_coco_label(self):
-        json_dict = {}
-        json_dict["id"] = self.label_id
-        json_dict["image_id"] = None
-        json_dict["category_id"] = self.label_name_id
-        json_dict["segmentation"] = [
-            [
+        json_dict = {
+            "category_id": self.label_name_id,
+            "segmentation": [
+                [
+                    self.rect().x(),
+                    self.rect().y(),
+                    self.rect().x() + self.rect().width(),
+                    self.rect().y() + self.rect().height(),
+                ]
+            ],
+            "area": self.rect().width() * self.rect().height(),
+            "bbox": [
                 self.rect().x(),
                 self.rect().y(),
-                self.rect().x() + self.rect().width(),
-                self.rect().y() + self.rect().height(),
-            ]
-        ]
-        json_dict["area"] = self.rect().width() * self.rect().height()
-        json_dict["bbox"] = [
-            self.rect().x(),
-            self.rect().y(),
-            self.rect().width(),
-            self.rect().height(),
-        ]
-        json_dict["iscrowd"] = 0
+                self.rect().width(),
+                self.rect().height(),
+            ],
+            "iscrowd": 0
+        }
 
         return json_dict
 

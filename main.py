@@ -2,10 +2,11 @@ import sys
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPalette, QColor, QFontDatabase, QIcon
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
+from PySide6.QtWidgets import QMainWindow, QWidget, QApplication
 
 from app_gui import AppGui
 from constants import *
+from widgets.welcome_widget import WelcomeWidget
 from widgets.yes_or_no_dialog import YesOrNoDialog
 
 
@@ -15,29 +16,42 @@ class MyApp(QMainWindow):
 
         self.setWindowTitle(TITLE)
         self.setMinimumSize(600, 400)
-        central_widget = QWidget()
-        self.app_gui = AppGui(self)
-        central_widget.setLayout(self.app_gui)
+        self.central_widget = QWidget()
+        self.app_gui = None
+        self.welcome_widget = WelcomeWidget()
+        self.setCentralWidget(self.welcome_widget)
 
-        self.setCentralWidget(central_widget)
+        self.welcome_widget.open_button.clicked.connect(self.open_project)
+        self.welcome_widget.load_button.clicked.connect(self.load_project)
+
+    def open_project(self):
+        self.show_app_gui()
+
+    def load_project(self):
+        self.show_app_gui()
+
+    def show_app_gui(self):
+        self.app_gui = AppGui(self)
+        self.central_widget.setLayout(self.app_gui)
 
     def closeEvent(self, event):
-        saved = self.app_gui.saved
-        if not saved:
-            yes_no_dialog = YesOrNoDialog(
-                self,
-                window_title="Save changes?",
-                title="Save changes?",
-                text="You have unsaved changes. Do you want to save them?",
-                cancel=True,
-            )
-            result = yes_no_dialog.exec_()
-            if result == YesOrNoDialog.Accepted:
-                self.app_gui.save_labels()
-            elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
-                self.close()
-            else:
-                pass
+        if self.app_gui:
+            saved = self.app_gui.saved
+            if not saved:
+                yes_no_dialog = YesOrNoDialog(
+                    self,
+                    window_title="Save changes?",
+                    title="Save changes?",
+                    text="You have unsaved changes. Do you want to save them?",
+                    cancel=True,
+                )
+                result = yes_no_dialog.exec_()
+                if result == YesOrNoDialog.Accepted:
+                    self.app_gui.save_labels()
+                elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
+                    self.close()
+                else:
+                    pass
 
 
 def create_palette():
@@ -78,8 +92,8 @@ def main():
         "QToolButton:hover {background-color:" + f"{HOVER_COLOR}" + ";}"
         "QToolButton:checked {background-color: " + f"{PRIMARY_COLOR}" + ";}"
         "QToolButton:pressed {background-color: " + f"{PRIMARY_COLOR}" + ";}"
-        "QPushButton {border: 1px solid " + f"{SURFACE_COLOR}" + "; padding: 5px;}"
-        "QPushButton:hover {background-color: " + f"{PRIMARY_COLOR}" + ";}"
+        "QPushButton {background-color: " + f"{BUTTON_BACKGROUND}" + "; border: none; color: #ffffff; padding: 10px;}"
+        "QPushButton:hover {background-color: " + f"{BUTTON_HOVER}" + ";}"
         "QScrollBar:vertical {border: none; background: "
         + f"{SURFACE_COLOR};"
         + " width: 18px; margin: 0px 0px 0px 0px;border-radius: 0px;}"
@@ -153,6 +167,12 @@ def main():
         "QToolTip {background-color: "
         + f"{BACKGROUND_COLOR}"
         + "; color: #ffffff; border: none; padding: 5px;}"
+        "QProgressBar {border: 1px solid " + f"{SURFACE_COLOR}" + ";  color: #ffffff; text-align: center;}"
+        "QProgressBar::chunk {background-color: " + f"{PRIMARY_COLOR}" + ";}"
+        "QMenuBar {background-color: " + f"{BACKGROUND_COLOR}" + ";}"
+        "QMenuBar::item {background-color: " + f"{BACKGROUND_COLOR}" + ";}"
+        "QMenuBar::item:selected {background-color: " + f"{PRIMARY_COLOR}" + ";}"
+        "QMenuBar::item:pressed {background-color: " + f"{PRIMARY_COLOR}" + ";}"
     )
     window = MyApp()
     icon = QIcon("icons/logo.png")
