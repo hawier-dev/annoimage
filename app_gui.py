@@ -18,7 +18,10 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QMenu,
     QWidgetAction,
-    QDialog, QGraphicsRectItem, QProgressDialog, QMenuBar,
+    QDialog,
+    QGraphicsRectItem,
+    QProgressDialog,
+    QMenuBar,
 )
 from PIL import Image
 
@@ -46,22 +49,22 @@ class AppGui(QVBoxLayout):
         menubar = QMenuBar()
 
         # Create the File menu and add actions
-        file_menu = menubar.addMenu('File')
-        open_project_action = QAction('Open Project', self)
+        file_menu = menubar.addMenu("File")
+        open_project_action = QAction("Open Project", self)
         open_project_action.setShortcut(QKeySequence.Open)
         file_menu.addAction(open_project_action)
 
-        create_project_action = QAction('Create Project', self)
+        create_project_action = QAction("Create Project", self)
         create_project_action.setShortcut(QKeySequence.New)
         file_menu.addAction(create_project_action)
 
-        quit_action = QAction('Quit', self)
+        quit_action = QAction("Quit", self)
         quit_action.setShortcut(QKeySequence.Quit)
         file_menu.addAction(quit_action)
 
         # Create the Help menu and add actions
-        help_menu = menubar.addMenu('Help')
-        about_action = QAction('About', self)
+        help_menu = menubar.addMenu("Help")
+        about_action = QAction("About", self)
         help_menu.addAction(about_action)
 
         # Connect the actions to their respective functions
@@ -327,7 +330,6 @@ class AppGui(QVBoxLayout):
     def about(self):
         print("About clicked")
 
-
     def load_image(self, image):
         if type(image) is QModelIndex:
             self.image_view.load_image(self.images[image.row()])
@@ -382,105 +384,12 @@ class AppGui(QVBoxLayout):
 
         self.image_view.labels_names = self.labels_names
 
-    def load_labels(self, dataset_type, path, images):
-        progress_dialog = QProgressDialog("Loading images...", "Cancel", 0, len(images), self.main_window)
-        progress_dialog.setWindowModality(Qt.WindowModal)
-        if dataset_type == "yolo":
-            try:
-                for index, image in enumerate(images):
-                    if progress_dialog.wasCanceled():
-                        break
-
-                    img = Image.open(image)
-                    label_file = os.path.splitext(image)[0] + ".txt"
-                    labels = []
-                    if os.path.exists(label_file):
-                        with open(label_file, "r") as labels_file:
-                            for line in labels_file.readlines():
-                                line = line.strip()
-                                label_id, x, y, w, h = line.split(" ")
-                                x, y, width, height = (
-                                    float(x) * img.width,
-                                    float(y) * img.height,
-                                    float(w) * img.width,
-                                    float(h) * img.height,
-                                )
-                                for i in range(int(label_id) + 1):
-                                    try:
-                                        self.labels_names[i]
-                                    except IndexError:
-                                        self.labels_names.append(f"Unknown_{i}")
-                                        self.update_labels_names()
-
-                                label_name = self.labels_names[int(label_id)]
-
-                                item = RectangleItem(
-                                    QPointF(x - width / 2, y - height / 2),
-                                    QPointF(x + width / 2, y + height / 2),
-                                    label_name,
-                                    label_id,
-                                    img.width,
-                                    img.height,
-                                    self,
-                                )
-                                if self.image_view.current_mode == "select":
-                                    item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
-                                    item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
-
-                                labels.append(item)
-
-                    progress_dialog.setValue(index)
-                    QtWidgets.QApplication.processEvents()
-
-                    self.images.append(LabelImage(index, image, labels))
-
-                progress_dialog.setValue(len(images))
-                QtWidgets.QApplication.processEvents()
-
-            finally:
-                print(self.images)
-                progress_dialog.close()
-
-        # elif dataset_type == "coco":
-        #     labels_file_path = os.path.join(self.output_path)
-        #     if os.path.exists(labels_file_path):
-        #         with open(labels_file_path, "r") as labels_file:
-        #             data = json.load(labels_file)
-        #             self.coco_dataset = data
-
     def open_directory(self):
         file_dialog = QFileDialog()
 
         directory = file_dialog.getExistingDirectory(
             None, "Select directory with images", ""
         )
-
-        if directory:
-            images = [
-                os.path.join(directory, file)
-                for file in os.listdir(directory)
-                if file.endswith((".jpg", ".jpeg", ".png", ".tif"))
-            ]
-            self.images_list.clear()
-            self.images_list.addItems(
-                [os.path.basename(image) for image in images]
-            )
-            self.load_labels("yolo", directory, images)
-
-            if self.label_path_line_edit.text() == "":
-                self.select_output_path(directory)
-            else:
-                yes_or_no_dialog = YesOrNoDialog(
-                    self.main_window,
-                    "Change output path",
-                    "Do you want to change output path to selected directory?",
-                    "Label files will be loaded and saved in this directory.",
-                )
-                result = yes_or_no_dialog.exec_()
-
-                if result == QDialog.Accepted:
-                    self.select_output_path(directory)
-
 
     def open_file(self):
         file_dialog = QFileDialog()

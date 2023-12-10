@@ -1,8 +1,16 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QPushButton, QLabel
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QListWidget,
+    QPushButton,
+    QLabel,
+)
 from PySide6.QtGui import QPixmap
 
 from constants import *
+from widgets.title_widget import TitleWidget
 
 
 class WelcomeWidget(QWidget):
@@ -12,24 +20,7 @@ class WelcomeWidget(QWidget):
         self.main_layout = QVBoxLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
 
-        self.title_widget = QWidget()
-        self.title_layout = QHBoxLayout()
-        self.title_layout.setAlignment(Qt.AlignCenter)
-        self.title_layout.setSpacing(20)
-
-        self.app_logo = QLabel()
-        self.app_logo.setPixmap(
-            QPixmap("icons/logo.png").scaled(
-                LOGO_SIZE * 1.3, LOGO_SIZE * 1.3, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
-        )
-        self.app_name = QLabel(TITLE)
-        self.app_name.setStyleSheet("font-size: 20px;")
-
-        self.title_layout.addWidget(self.app_logo)
-        self.title_layout.addWidget(self.app_name)
-
-        self.title_widget.setLayout(self.title_layout)
+        self.title_widget = TitleWidget()
         self.main_layout.addWidget(self.title_widget)
 
         self.buttons_widget = QWidget()
@@ -42,13 +33,11 @@ class WelcomeWidget(QWidget):
             "}"
         )
         self.buttons_layout = QVBoxLayout()
-        self.open_button = QPushButton('Open Project')
-        self.open_button.setCursor(Qt.PointingHandCursor)
-        self.open_button.clicked.connect(self.open_project)
-        self.buttons_layout.addWidget(self.open_button)
+        self.new_button = QPushButton("New Project")
+        self.new_button.setCursor(Qt.PointingHandCursor)
+        self.buttons_layout.addWidget(self.new_button)
 
-        self.load_button = QPushButton('Load Project')
-        self.load_button.clicked.connect(self.load_project)
+        self.load_button = QPushButton("Load Project")
         self.load_button.setCursor(Qt.PointingHandCursor)
         self.buttons_layout.addWidget(self.load_button)
 
@@ -66,9 +55,3 @@ class WelcomeWidget(QWidget):
         self.main_layout.addWidget(self.project_list)
 
         self.setLayout(self.main_layout)
-
-    def open_project(self):
-        print('Open Project clicked')
-
-    def load_project(self):
-        print('Load Project clicked')

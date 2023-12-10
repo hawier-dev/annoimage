@@ -19,7 +19,6 @@ class LabelsManageDialog(CenteredDialog):
 
         self.setWindowTitle("Manage labels")
         self.setGeometry(100, 100, 400, 300)
-        self.setWindowIcon(QIcon("icons/logo.png"))
 
         layout = QVBoxLayout()
 

@@ -13,14 +13,10 @@ class RectangleItem(QGraphicsRectItem):
         end_point,
         label_name,
         label_name_id,
-        image_width,
-        image_height,
-        parent,
         temporary=False,
     ):
         super().__init__()
         self.setRect(self.calculate_rectangle(start_point, end_point))
-        self.image_view = parent
 
         self.temporary = temporary
 
@@ -35,8 +31,6 @@ class RectangleItem(QGraphicsRectItem):
 
         self.selectable = True
         self.hovered = False
-        self.image_width = image_width
-        self.image_height = image_height
         self.label_name = label_name
         self.label_name_id = label_name_id
 
@@ -48,6 +42,25 @@ class RectangleItem(QGraphicsRectItem):
             self.setAcceptHoverEvents(True)
 
         self.setFlag(QGraphicsRectItem.ItemIsMovable)
+
+    def to_dict(self):
+        return {
+            "type": "RectangleItem",
+            "start_point": (self.start_point.x(), self.start_point.y()),
+            "end_point": (self.end_point.x(), self.end_point.y()),
+            "label_name": self.label_name,
+            "label_name_id": self.label_name_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        ri = cls(
+            QPointF(*data["start_point"]),
+            QPointF(*data["end_point"]),
+            data["label_name"],
+            data["label_name_id"],
+        )
+        return ri
 
     @staticmethod
     def calculate_rectangle(start_point, end_point):
@@ -65,14 +78,14 @@ class RectangleItem(QGraphicsRectItem):
             self.setPen(self.default_pen)
             self.setBrush(self.default_brush)
 
-    def create_yolo_label(self):
-        x = (self.rect().x() + self.rect().width() / 2) / self.image_width
-        y = (self.rect().y() + self.rect().height() / 2) / self.image_height
-        width = self.rect().width() / self.image_width
-        height = self.rect().height() / self.image_height
-
-        label_string = f"{self.label_name_id} {x:.6f} {y:.6f} {width:.6f} {height:.6f}"
-        return label_string
+    # def create_yolo_label(self):
+    #     x = (self.rect().x() + self.rect().width() / 2) / self.image_width
+    #     y = (self.rect().y() + self.rect().height() / 2) / self.image_height
+    #     width = self.rect().width() / self.image_width
+    #     height = self.rect().height() / self.image_height
+    #
+    #     label_string = f"{self.label_name_id} {x:.6f} {y:.6f} {width:.6f} {height:.6f}"
+    #     return label_string
 
     def create_coco_label(self):
         json_dict = {
@@ -92,7 +105,7 @@ class RectangleItem(QGraphicsRectItem):
                 self.rect().width(),
                 self.rect().height(),
             ],
-            "iscrowd": 0
+            "iscrowd": 0,
         }
 
         return json_dict

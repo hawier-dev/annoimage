@@ -5,7 +5,7 @@ from widgets.centered_dialog import CenteredDialog
 
 
 class YesOrNoDialog(CenteredDialog):
-    def __init__(self, widget,  window_title, title, text, description="", cancel=False):
+    def __init__(self, widget, window_title, title, text, description="", cancel=False):
         super(YesOrNoDialog, self).__init__(widget)
 
         self.setWindowTitle(window_title)

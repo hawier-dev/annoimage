@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QLineEdit, QVBoxLayout, QHBoxLayout, QPushButton
 
 from widgets.centered_dialog import CenteredDialog
@@ -14,9 +15,6 @@ class AddLabelDialog(CenteredDialog):
 
         self.label_name_input = QLineEdit()
         self.label_name_input.setPlaceholderText("Label Name")
-        self.label_name_input.setStyleSheet(
-            "font-size: 13px; padding: 5px; border: 1px solid gray; border-radius: 5px;"
-        )
 
         self.hor_layout = QHBoxLayout()
         self.button_cancel = QPushButton("Cancel")

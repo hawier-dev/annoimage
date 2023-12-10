@@ -3,9 +3,10 @@ import sys
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPalette, QColor, QFontDatabase, QIcon
 from PySide6.QtWidgets import QMainWindow, QWidget, QApplication
-
 from app_gui import AppGui
 from constants import *
+from models.anno_project import AnnoProject
+from widgets.new_project_widget import NewProjectWidget
 from widgets.welcome_widget import WelcomeWidget
 from widgets.yes_or_no_dialog import YesOrNoDialog
 
@@ -16,23 +17,42 @@ class MyApp(QMainWindow):
 
         self.setWindowTitle(TITLE)
         self.setMinimumSize(600, 400)
+
         self.central_widget = QWidget()
         self.app_gui = None
-        self.welcome_widget = WelcomeWidget()
-        self.setCentralWidget(self.welcome_widget)
 
-        self.welcome_widget.open_button.clicked.connect(self.open_project)
-        self.welcome_widget.load_button.clicked.connect(self.load_project)
+        self.show_welcome_widget()
+        # self.new_project()
 
-    def open_project(self):
-        self.show_app_gui()
+    def new_project(self):
+        new_project_widget = NewProjectWidget(self)
+        new_project_widget.back_button.pressed.connect(self.show_welcome_widget)
+        new_project_widget.project_created.connect(self.show_app_gui)
+
+        self.setCentralWidget(new_project_widget)
+        # anno_project = AnnoProject(
+        #     self,
+        #     class_names=[],
+        #     images=[],
+        #     output_path=[],
+        #     dataset_type=None,
+        # )
+        # self.show_app_gui()
 
     def load_project(self):
         self.show_app_gui()
 
-    def show_app_gui(self):
+    def show_welcome_widget(self):
+        welcome_widget = WelcomeWidget()
+        welcome_widget.new_button.clicked.connect(self.new_project)
+        welcome_widget.load_button.clicked.connect(self.load_project)
+
+        self.setCentralWidget(welcome_widget)
+
+    def show_app_gui(self, anno_project: AnnoProject):
         self.app_gui = AppGui(self)
         self.central_widget.setLayout(self.app_gui)
+        self.setCentralWidget(self.central_widget)
 
     def closeEvent(self, event):
         if self.app_gui:
@@ -78,10 +98,15 @@ def main():
     QFontDatabase.addApplicationFont("fonts/Inter-Medium.ttf")
     QFontDatabase.addApplicationFont("fonts/Inter-Bold.ttf")
     app.setPalette(create_palette())
+    app.setWindowIcon(QIcon("icons/logo.ico"))
     app.setStyleSheet(
         "*:focus {outline: none;} "
         "* {font-family: Inter; font-size: 12px; color: white; border-radius: 5px;}"
         "QWidget {border: 0px solid black;} "
+        "QLineEdit {height: 30px; padding-left: 10px; padding-right: 10px; background-color: "
+        + f"{SURFACE_COLOR}"
+        + "}"
+        "QLineEdit:focus {border: 1px solid " + f"{BACKGROUND_COLOR2}" + "}"
         "QListWidget::item { height: 30px; background-color: #444; margin: 1px;}"
         "QListWidget::item:selected { background-color: #666; color: #ffffff;}"
         "QListWidget::item:focus {outline: none;}"
@@ -92,8 +117,13 @@ def main():
         "QToolButton:hover {background-color:" + f"{HOVER_COLOR}" + ";}"
         "QToolButton:checked {background-color: " + f"{PRIMARY_COLOR}" + ";}"
         "QToolButton:pressed {background-color: " + f"{PRIMARY_COLOR}" + ";}"
-        "QPushButton {background-color: " + f"{BUTTON_BACKGROUND}" + "; border: none; color: #ffffff; padding: 10px;}"
+        "QPushButton {background-color: "
+        + f"{BUTTON_BACKGROUND}"
+        + "; border: none; color: #ffffff; padding: 10px;}"
         "QPushButton:hover {background-color: " + f"{BUTTON_HOVER}" + ";}"
+        "QPushButton:disabled {background-color: "
+        + f"{SURFACE_COLOR}; color: #888"
+        + "}"
         "QScrollBar:vertical {border: none; background: "
         + f"{SURFACE_COLOR};"
         + " width: 18px; margin: 0px 0px 0px 0px;border-radius: 0px;}"
@@ -167,7 +197,9 @@ def main():
         "QToolTip {background-color: "
         + f"{BACKGROUND_COLOR}"
         + "; color: #ffffff; border: none; padding: 5px;}"
-        "QProgressBar {border: 1px solid " + f"{SURFACE_COLOR}" + ";  color: #ffffff; text-align: center;}"
+        "QProgressBar {border: 1px solid "
+        + f"{SURFACE_COLOR}"
+        + ";  color: #ffffff; text-align: center;}"
         "QProgressBar::chunk {background-color: " + f"{PRIMARY_COLOR}" + ";}"
         "QMenuBar {background-color: " + f"{BACKGROUND_COLOR}" + ";}"
         "QMenuBar::item {background-color: " + f"{BACKGROUND_COLOR}" + ";}"
@@ -175,9 +207,6 @@ def main():
         "QMenuBar::item:pressed {background-color: " + f"{PRIMARY_COLOR}" + ";}"
     )
     window = MyApp()
-    icon = QIcon("icons/logo.png")
-    window.setWindowIcon(icon)
-
     window.show()
     sys.exit(app.exec())
 

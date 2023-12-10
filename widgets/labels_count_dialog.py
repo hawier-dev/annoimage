@@ -17,7 +17,6 @@ class LabelsCountDialog(CenteredDialog):
         super().__init__(widget)
 
         self.setWindowTitle("Labels count")
-        self.setWindowIcon(QIcon("icons/logo.png"))
         self.setGeometry(100, 100, 400, 300)
 
         # Table with count
