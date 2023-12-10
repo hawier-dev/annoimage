@@ -32,45 +32,41 @@ Image.MAX_IMAGE_PIXELS = 933120000
 
 
 class ImageView(QGraphicsView):
-    label_added = Signal(list)
+    label_added = Signal()
     updated_labels = Signal(list)
     drawing_label = Signal(tuple, bool)
-    on_image_loaded = Signal(LabelImage)
+    on_image_loaded = Signal()
 
     def __init__(self, parent=None):
         super().__init__()
         self.zoom_factor = 0
-        self.image = None
         self.image_loader = None
         self.drawing = False
         self.start_point = None
         self.end_point = None
         self.rect_item = None
-        self.labels = []
-        self.current_saved_labels = []
         self.label_name = None
         self.label_id = None
-        self.labels_names = []
         self.polygon_points = []
         self.polygon_item = None
 
         self.output_path = None
 
-        self.coco_dataset = {
-            "info": {
-                "description": "Dataset for image segmentation",
-                "url": "",
-                "version": "1.0",
-                "year": 2021,
-                "contributor": "",
-                "date_created": datetime.datetime.now().strftime("%Y/%m/%d"),
-                "creator": f"{TITLE} {VERSION}",
-            },
-            "licenses": [],
-            "images": [],
-            "annotations": [],
-            "categories": [],
-        }
+        # self.coco_dataset = {
+        #     "info": {
+        #         "description": "Dataset for image segmentation",
+        #         "url": "",
+        #         "version": "1.0",
+        #         "year": 2021,
+        #         "contributor": "",
+        #         "date_created": datetime.datetime.now().strftime("%Y/%m/%d"),
+        #         "creator": f"{TITLE} {VERSION}",
+        #     },
+        #     "licenses": [],
+        #     "images": [],
+        #     "annotations": [],
+        #     "categories": [],
+        # }
 
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
@@ -139,8 +135,6 @@ class ImageView(QGraphicsView):
             self.height() // 2 - self.loading_label.height() // 2,
         )
         self.loading_label.setVisible(True)
-        self.image = label_image
-        print(self.image)
 
         self.image_loader = ImageLoader(label_image.path)
         self.image_loader.loaded.connect(self.image_loaded)
@@ -163,39 +157,22 @@ class ImageView(QGraphicsView):
         self.fitInView(self.scene().items()[0], Qt.KeepAspectRatio)
         self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
 
-        self.labels = []
-        self.current_saved_labels = []
-
-        self.updated_labels.emit(self.labels)
-        self.on_image_loaded.emit(self.image)
+        self.on_image_loaded.emit()
 
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
 
-    def load_labels(self, labels):
-        self.labels = labels
-        self.current_saved_labels = labels
-        self.scene().clear()
-        self.scene().addPixmap(self.image)
-        self.fitInView(self.scene().items()[0], Qt.KeepAspectRatio)
-        self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
-        self.scene().addRect(0, 0, self.image_width, self.image_height)
-        self.scene().addRect(0, 0, self.image_width, self.image_height)
-
-        for item in self.labels:
-            self.scene().addItem(item)
-
     def update_label_names(self):
-        for rectangle in self.labels:
-            rectangle.label_name = (
-                self.labels_names[int(rectangle.label_name_id)]
+        for item in self.parent.anno_project.current_image.labels:
+            item.label_name = (
+                self.parent.anno_project.class_names[int(item.label_name_id)]
                 + " "
-                + rectangle.label_name.split(" ")[-1]
+                + item.label_name.split(" ")[-1]
             )
 
     def get_label_id(self):
         label_id = 1
-        for label in self.labels:
+        for label in self.parent.anno_project.current_image.labels:
             if label.label_id == label_id:
                 label_id += 1
 
@@ -253,23 +230,21 @@ class ImageView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def process_item(self, item):
-        if not self.labels_names:
+        if not self.parent.anno_project.class_names:
             add_label_dialog = AddLabelDialog(self)
             if add_label_dialog.exec() == QDialog.Accepted:
                 self.label_name = add_label_dialog.label_name_input.text()
                 self.label_id = 0
-                self.labels_names.append(self.label_name)
-                self.parent.labels_names.append(self.label_name)
+                self.parent.anno_project.class_names.append(self.label_name)
                 self.parent.label_name_selector.addItem(self.label_name)
                 self.parent.label_name_selector.setCurrentText(self.label_name)
                 item.label_name = self.generate_label_name(self.label_name)
                 item.label_name_id = self.label_id
-                item.label_yolo = item.create_yolo_label()
             else:
                 self.scene().removeItem(self.rect_item)
                 return
 
-        self.labels.append(item)
+        self.parent.anno_project.current_image.labels.append(item)
         self.scene().addItem(item)
         if isinstance(item, RectangleItem):
             size = (item.rect().width(), item.rect().height())
@@ -278,7 +253,7 @@ class ImageView(QGraphicsView):
         else:
             raise ValueError("Unexpected item type")
 
-        self.label_added.emit(self.labels)
+        self.label_added.emit()
         self.drawing_label.emit(size, False)
 
     def mouseReleaseEvent(self, event):
@@ -289,14 +264,10 @@ class ImageView(QGraphicsView):
                 self.drawing = False
 
                 item = RectangleItem(
-                    self.get_label_id(),
                     self.start_point,
                     self.end_point,
                     self.generate_label_name(self.label_name),
                     self.label_id,
-                    self.image_width,
-                    self.image_height,
-                    self,
                 )
 
                 if self.current_mode == "select":
@@ -372,14 +343,14 @@ class ImageView(QGraphicsView):
             self.image_height,
             self,
         )
-        self.labels.append(polygon_item)
+        self.parent.anno_project.current_image.labels.append(polygon_item)
         self.scene().addItem(polygon_item)
 
         self.scene().removeItem(self.polygon_item)
         self.polygon_item = None
         self.polygon_points = []
 
-        self.label_added.emit(self.labels)
+        self.label_added.emit()
         self.drawing_label.emit(
             (polygon_item.boundingRect().width(), polygon_item.boundingRect().height()),
             False,
@@ -417,14 +388,10 @@ class ImageView(QGraphicsView):
         self.end_point = QPointF(x2, y2)
 
         self.rect_item = RectangleItem(
-            0,
             self.start_point,
             self.end_point,
             self.generate_label_name(self.label_name),
             self.label_id,
-            self.image_width,
-            self.image_height,
-            self,
             temporary=True,
         )
 
@@ -436,7 +403,6 @@ class ImageView(QGraphicsView):
             True,
         )
         self.scene().addItem(self.rect_item)
-        # self.rectangles.append(rect)
 
     def calculate_rectangle(self):
         x1, y1 = self.start_point.x(), self.start_point.y()
@@ -467,7 +433,7 @@ class ImageView(QGraphicsView):
         self.movable_disable()
 
     def generate_label_name(self, label_str):
-        label_names = [rectangle.label_name for rectangle in self.labels]
+        label_names = [item.label_name for item in self.parent.anno_project.current_image.labels]
         i = 0
         while True:
             label_name = f"{label_str} {i}"
@@ -490,7 +456,7 @@ class ImageView(QGraphicsView):
                 rectangle.setSelected(False)
 
     def zoom_to_rect(self, label):
-        for rectangle in self.labels:
+        for rectangle in self.parent.anno_project.current_image.labels:
             if rectangle.label_name == label:
                 self.fitInView(rectangle, Qt.KeepAspectRatio)
                 break
@@ -503,14 +469,16 @@ class ImageView(QGraphicsView):
         """
         Disable movable flag for all rectangles
         """
-        for rectangle in self.labels:
-            rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
-            rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, False)
+        if self.parent.anno_project.current_image:
+            for rectangle in self.parent.anno_project.current_image.labels:
+                rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
+                rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, False)
 
     def movable_enable(self):
         """
         Enable movable flag for all rectangles
         """
-        for rectangle in self.labels:
-            rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
-            rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+        if self.parent.anno_project.current_image:
+            for rectangle in self.parent.anno_project.current_image.labels:
+                rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+                rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)

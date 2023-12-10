@@ -36,8 +36,6 @@ class RectangleItem(QGraphicsRectItem):
 
         self.set_default_color()
         if not self.temporary:
-            self.label_yolo = self.create_yolo_label()
-            self.label_coco = self.create_coco_label()
             self.add_resize_handles()
             self.setAcceptHoverEvents(True)
 
@@ -87,28 +85,28 @@ class RectangleItem(QGraphicsRectItem):
     #     label_string = f"{self.label_name_id} {x:.6f} {y:.6f} {width:.6f} {height:.6f}"
     #     return label_string
 
-    def create_coco_label(self):
-        json_dict = {
-            "category_id": self.label_name_id,
-            "segmentation": [
-                [
-                    self.rect().x(),
-                    self.rect().y(),
-                    self.rect().x() + self.rect().width(),
-                    self.rect().y() + self.rect().height(),
-                ]
-            ],
-            "area": self.rect().width() * self.rect().height(),
-            "bbox": [
-                self.rect().x(),
-                self.rect().y(),
-                self.rect().width(),
-                self.rect().height(),
-            ],
-            "iscrowd": 0,
-        }
-
-        return json_dict
+    # def create_coco_label(self):
+    #     json_dict = {
+    #         "category_id": self.label_name_id,
+    #         "segmentation": [
+    #             [
+    #                 self.rect().x(),
+    #                 self.rect().y(),
+    #                 self.rect().x() + self.rect().width(),
+    #                 self.rect().y() + self.rect().height(),
+    #             ]
+    #         ],
+    #         "area": self.rect().width() * self.rect().height(),
+    #         "bbox": [
+    #             self.rect().x(),
+    #             self.rect().y(),
+    #             self.rect().width(),
+    #             self.rect().height(),
+    #         ],
+    #         "iscrowd": 0,
+    #     }
+    #
+    #     return json_dict
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)

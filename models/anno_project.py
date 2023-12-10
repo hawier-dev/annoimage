@@ -1,13 +1,7 @@
 import json
-import os
-
-from PIL import Image
-from PySide6 import QtWidgets
-from PySide6.QtCore import Qt, QPointF
-from PySide6.QtWidgets import QProgressDialog, QGraphicsRectItem, QFileDialog
+from PySide6.QtWidgets import QFileDialog
 
 from models.label_image import LabelImage
-from widgets.rectangle_item import RectangleItem
 
 
 class AnnoProject:
@@ -27,6 +21,10 @@ class AnnoProject:
         self.class_names = class_names
         self.dataset_type = dataset_type
         self.images = images
+        self.saved = True
+        self.current_image = None
+        self.last_saved_state = None
+        self.save_project()
 
     def save_project(self):
         if not (self.path and self.path.endswith(".annoimg")):
@@ -45,6 +43,8 @@ class AnnoProject:
         with open(self.path, "w") as file:
             json.dump(json_data, file)
 
+        self.last_saved_state = json_data
+
     @classmethod
     def load(cls, path, main_window):
         with open(path, "r") as file:
@@ -57,6 +57,25 @@ class AnnoProject:
                 for image_data in json_data.get("images")
             ]
             return cls(main_window, name, images, class_names, dataset_type, path)
+
+    def get_current_image(self):
+        for image in self.images:
+            if image.image_id == self.current_image.image_id:
+                return image
+        return None
+
+    def set_current_image(self, label_image):
+        self.current_image = label_image
+
+    def is_saved(self):
+        current_state = {
+            "name": self.name,
+            "class_names": self.class_names,
+            "dataset_type": self.dataset_type,
+            "images": [image.to_dict() for image in self.images],
+        }
+        print(self.last_saved_state == current_state)
+        return self.last_saved_state == current_state
 
     # def load_labels(self, labels_path):
     #     progress_dialog = QProgressDialog(
@@ -119,4 +138,3 @@ class AnnoProject:
     #         with open(labels_file_path, "r") as labels_file:
     #             data = json.load(labels_file)
     #             self.coco_dataset = data
-

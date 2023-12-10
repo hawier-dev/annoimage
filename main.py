@@ -1,8 +1,11 @@
+import json
+import os
 import sys
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QModelIndex
 from PySide6.QtGui import QPalette, QColor, QFontDatabase, QIcon
-from PySide6.QtWidgets import QMainWindow, QWidget, QApplication
+from PySide6.QtWidgets import QMainWindow, QWidget, QApplication, QFileDialog
+from appdirs import user_data_dir
 from app_gui import AppGui
 from constants import *
 from models.anno_project import AnnoProject
@@ -14,6 +17,7 @@ from widgets.yes_or_no_dialog import YesOrNoDialog
 class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.settings = self.load_settings()
 
         self.setWindowTitle(TITLE)
         self.setMinimumSize(600, 400)
@@ -22,7 +26,6 @@ class MyApp(QMainWindow):
         self.app_gui = None
 
         self.show_welcome_widget()
-        # self.new_project()
 
     def new_project(self):
         new_project_widget = NewProjectWidget(self)
@@ -30,48 +33,86 @@ class MyApp(QMainWindow):
         new_project_widget.project_created.connect(self.show_app_gui)
 
         self.setCentralWidget(new_project_widget)
-        # anno_project = AnnoProject(
-        #     self,
-        #     class_names=[],
-        #     images=[],
-        #     output_path=[],
-        #     dataset_type=None,
-        # )
-        # self.show_app_gui()
 
-    def load_project(self):
-        self.show_app_gui()
+    def load_project(self, path=None):
+        if isinstance(path, QModelIndex):
+            try:
+                path = self.settings["last_projects"][path.row()]["path"]
+            except IndexError or KeyError:
+                return
+        else:
+            path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Load Project",
+                filter="Project Files (*.annoimg)",
+            )
+
+        if path:
+            anno_project = AnnoProject.load(path, self)
+            self.show_app_gui(anno_project)
 
     def show_welcome_widget(self):
-        welcome_widget = WelcomeWidget()
+        welcome_widget = WelcomeWidget(self.settings["last_projects"])
         welcome_widget.new_button.clicked.connect(self.new_project)
         welcome_widget.load_button.clicked.connect(self.load_project)
+        welcome_widget.project_list.doubleClicked.connect(self.load_project)
 
         self.setCentralWidget(welcome_widget)
 
     def show_app_gui(self, anno_project: AnnoProject):
-        self.app_gui = AppGui(self)
+        for project in self.settings["last_projects"]:
+            if project["path"] == anno_project.path:
+                self.settings["last_projects"].remove(project)
+
+        self.settings["last_projects"].append(
+            {"name": anno_project.name, "path": anno_project.path}
+        )
+        self.save_settings()
+        self.app_gui = AppGui(anno_project, self)
         self.central_widget.setLayout(self.app_gui)
         self.setCentralWidget(self.central_widget)
 
-    def closeEvent(self, event):
-        if self.app_gui:
-            saved = self.app_gui.saved
-            if not saved:
-                yes_no_dialog = YesOrNoDialog(
-                    self,
-                    window_title="Save changes?",
-                    title="Save changes?",
-                    text="You have unsaved changes. Do you want to save them?",
-                    cancel=True,
-                )
-                result = yes_no_dialog.exec_()
-                if result == YesOrNoDialog.Accepted:
-                    self.app_gui.save_labels()
-                elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
-                    self.close()
-                else:
-                    pass
+    def save_settings(self):
+        settings_path = user_data_dir(TITLE, AUTHOR)
+        os.makedirs(settings_path, exist_ok=True)
+        settings_file = os.path.join(settings_path, "settings.json")
+        with open(settings_file, "w") as f:
+            json.dump(self.settings, f)
+
+    def load_settings(self):
+        settings_path = user_data_dir(TITLE, AUTHOR)
+        os.makedirs(settings_path, exist_ok=True)
+        settings_file = os.path.join(settings_path, "settings.json")
+        settings = {"last_projects": []}
+        if os.path.exists(settings_file):
+            with open(settings_file, "r") as f:
+                settings = json.load(f)
+                print(settings)
+        else:
+            with open(settings_file, "w") as f:
+                json.dump(settings, f)
+
+        return settings
+
+    # def closeEvent(self, event):
+    #     if self.app_gui:
+    #         saved = self.app_gui.anno_project.is_saved()
+    #         if not saved:
+    #             yes_no_dialog = YesOrNoDialog(
+    #                 self,
+    #                 window_title="Save changes?",
+    #                 title="Save changes?",
+    #                 text="You have unsaved changes. Do you want to save them?",
+    #                 cancel=True,
+    #             )
+    #             result = yes_no_dialog.exec_()
+    #             if result == YesOrNoDialog.Accepted:
+    #                 self.app_gui.save_labels()
+    #             elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
+    #                 self.close()
+    #             else:
+    #                 pass
+    #
 
 
 def create_palette():
@@ -95,6 +136,8 @@ def create_palette():
 
 def main():
     app = QApplication()
+    app.setApplicationName(TITLE)
+    app.setApplicationVersion(VERSION)
     QFontDatabase.addApplicationFont("fonts/Inter-Medium.ttf")
     QFontDatabase.addApplicationFont("fonts/Inter-Bold.ttf")
     app.setPalette(create_palette())
@@ -107,8 +150,8 @@ def main():
         + f"{SURFACE_COLOR}"
         + "}"
         "QLineEdit:focus {border: 1px solid " + f"{BACKGROUND_COLOR2}" + "}"
-        "QListWidget::item { height: 30px; background-color: #444; margin: 1px;}"
-        "QListWidget::item:selected { background-color: #666; color: #ffffff;}"
+        "QListWidget::item { height: 30px; background-color: " + f"{SURFACE_COLOR}" + "; margin: 1px;}"
+        "QListWidget::item:selected { background-color: " + f"{BACKGROUND_COLOR2}" + "; color: #ffffff;}"
         "QListWidget::item:focus {outline: none;}"
         "QToolBar {border: none; margin: 0px; padding: 0px; spacing: 0px;}"
         "QToolButton {background-color: "
