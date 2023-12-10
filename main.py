@@ -61,7 +61,7 @@ class MyApp(QMainWindow):
 
     def show_app_gui(self, anno_project: AnnoProject):
         for project in self.settings["last_projects"]:
-            if project["path"] == anno_project.path:
+            if os.path.abspath(project["path"]) == os.path.abspath(anno_project.path):
                 self.settings["last_projects"].remove(project)
 
         self.settings["last_projects"].append(
