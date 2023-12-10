@@ -111,7 +111,7 @@ class AppGui(QVBoxLayout):
         self.next_button.setShortcut("Right")
 
         self.save_button = QAction(QIcon("icons/save.png"), "Save (CTRL + S)", self)
-        self.save_button.triggered.connect(self.export_labels)
+        self.save_button.triggered.connect(self.save_project)
         self.save_button.setShortcut("CTRL+S")
 
         self.left_toolbar.addAction(self.select_button)
@@ -307,8 +307,9 @@ class AppGui(QVBoxLayout):
         except ValueError:
             self.image_view.label_id = None
 
-    def export_labels(self):
-        pass
+    def save_project(self):
+        self.anno_project.save_project()
+        self.check_if_saved()
 
     def manage_labels(self):
         labels_manage_dialog = LabelsManageDialog(

@@ -13,12 +13,14 @@ class RectangleItem(QGraphicsRectItem):
         end_point,
         label_name,
         label_name_id,
+        on_update=None,
         temporary=False,
     ):
         super().__init__()
         self.setRect(self.calculate_rectangle(start_point, end_point))
 
         self.temporary = temporary
+        self.on_update = on_update
 
         self.resize_handles = []
 
@@ -64,6 +66,7 @@ class RectangleItem(QGraphicsRectItem):
     def calculate_rectangle(start_point, end_point):
         x1, y1 = start_point.x(), start_point.y()
         x2, y2 = end_point.x(), end_point.y()
+
         return QRectF(
             QPointF(min(x1, x2), min(y1, y2)), QPointF(max(x1, x2), max(y1, y2))
         )
@@ -117,6 +120,8 @@ class RectangleItem(QGraphicsRectItem):
         self.setRect(self.calculate_rectangle(self.start_point, self.end_point))
         self.setPos(0, 0)
         self.update_handlers()
+        if self.on_update:
+            self.on_update()
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemSelectedChange:
@@ -144,7 +149,7 @@ class RectangleItem(QGraphicsRectItem):
             self.set_default_color()
 
     def add_resize_handles(self):
-        handle_size = min(self.rect().width(), self.rect().height()) * 0.10
+        handle_size = 5
         half_size = handle_size / 2
 
         for x, y in [(0, 0), (1, 0), (0, 1), (1, 1)]:
@@ -234,6 +239,7 @@ class HandleItem(QGraphicsEllipseItem):
     def mouseReleaseEvent(self, event):
         parent = self.parentItem()
         parent.image_view.movable_enable()
-        parent.label_line = parent.create_yolo_label()
         parent.image_view.parent.update_labels_list()
+        if parent.on_update:
+            parent.on_update()
         super().mouseReleaseEvent(event)

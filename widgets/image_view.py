@@ -1,3 +1,4 @@
+import copy
 import datetime
 import json
 import os
@@ -51,7 +52,7 @@ class ImageView(QGraphicsView):
         self.polygon_item = None
 
         self.output_path = None
-
+        self.current_labels = []
         # self.coco_dataset = {
         #     "info": {
         #         "description": "Dataset for image segmentation",
@@ -157,10 +158,42 @@ class ImageView(QGraphicsView):
         self.fitInView(self.scene().items()[0], Qt.KeepAspectRatio)
         self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
 
+        self.load_labels()
+
         self.on_image_loaded.emit()
 
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
+
+    def load_labels(self):
+        self.current_labels = []
+        if self.parent.anno_project.current_image:
+            for label in self.parent.anno_project.current_image.labels:
+                if isinstance(label, RectangleItem):
+                    new_label = RectangleItem(
+                        label.start_point,
+                        label.end_point,
+                        label.label_name,
+                        label.label_name_id,
+                        on_update=self.update_labels
+                    )
+                    self.current_labels.append(new_label)
+                    self.scene().addItem(new_label)
+
+                # elif isinstance(label, PolygonItem):
+                #     item = PolygonItem(
+                #         label.polygon,
+                #         label.label_name,
+                #         label.label_name_id,
+                #         self.image_width,
+                #         self.image_height,
+                #         self,
+                #     )
+                #     self.scene().addItem(item)
+
+    def update_labels(self):
+        self.parent.anno_project.current_image.labels = self.current_labels
+        self.parent.check_if_saved()
 
     def update_label_names(self):
         for item in self.parent.anno_project.current_image.labels:
@@ -441,19 +474,19 @@ class ImageView(QGraphicsView):
                 return label_name
             i += 1
 
-    def delete_selected_rectangles(self, rectangles):
-        for rectangle in rectangles:
-            self.scene().removeItem(rectangle)
-            self.labels.remove(rectangle)
+    def delete_selected_rectangles(self, labels):
+        for item in labels:
+            self.scene().removeItem(item)
+            self.parent.anno_project.current_image.labels.remove(item)
 
-        self.updated_labels.emit(self.labels)
+        self.updated_labels.emit(self.parent.anno_project.current_image.labels)
 
     def select_labels(self, labels):
-        for rectangle in self.labels:
-            if rectangle.label_name in labels:
-                rectangle.setSelected(True)
+        for item in self.parent.anno_project.current_image.labels:
+            if item.label_name in labels:
+                item.setSelected(True)
             else:
-                rectangle.setSelected(False)
+                item.setSelected(False)
 
     def zoom_to_rect(self, label):
         for rectangle in self.parent.anno_project.current_image.labels:
@@ -470,15 +503,15 @@ class ImageView(QGraphicsView):
         Disable movable flag for all rectangles
         """
         if self.parent.anno_project.current_image:
-            for rectangle in self.parent.anno_project.current_image.labels:
-                rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, False)
-                rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, False)
+            for item in self.parent.anno_project.current_image.labels:
+                item.setFlag(QGraphicsRectItem.ItemIsMovable, False)
+                item.setFlag(QGraphicsRectItem.ItemIsSelectable, False)
 
     def movable_enable(self):
         """
-        Enable movable flag for all rectangles
+        Enable movable flag for all items
         """
         if self.parent.anno_project.current_image:
-            for rectangle in self.parent.anno_project.current_image.labels:
-                rectangle.setFlag(QGraphicsRectItem.ItemIsMovable, True)
-                rectangle.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+            for item in self.parent.anno_project.current_image.labels:
+                item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+                item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
