@@ -125,6 +125,10 @@ class ImageView(QGraphicsView):
         self.scale(zoom_factor, zoom_factor)
 
     def load_image(self, label_image: LabelImage):
+        """
+        Load image from path
+        :param label_image: LabelImage object
+        """
         if self.loading_image:
             return
 
@@ -141,6 +145,10 @@ class ImageView(QGraphicsView):
         self.image_loader.start()
 
     def image_loaded(self, pixmap):
+        """
+        Called when image is loaded
+        :param pixmap: QPixmap object
+        """
         self.loading_image = False
         if pixmap.width() == 0:
             QMessageBox.critical(
@@ -163,6 +171,10 @@ class ImageView(QGraphicsView):
         self.loading_label.setVisible(False)
 
     def load_labels(self, labels):
+        """
+        Load labels from list
+        :param labels: list of labels
+        """
         self.current_labels = []
         for label in labels:
             if label["type"] == "RectangleItem":
@@ -176,6 +188,9 @@ class ImageView(QGraphicsView):
         self.labels_updated.emit()
 
     def update_label_names(self):
+        """
+        Update label names with class names from project
+        """
         for item in self.current_labels:
             item.label_name = (
                 self.parent.anno_project.class_names[int(item.label_name_id)]
@@ -186,6 +201,9 @@ class ImageView(QGraphicsView):
         self.labels_updated.emit()
 
     def get_label_id(self):
+        """
+        Get next label id
+        """
         label_id = 1
         for label in self.current_labels:
             if label.label_id == label_id:
@@ -245,6 +263,10 @@ class ImageView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def process_item(self, item):
+        """
+        Process item after drawing is finished
+        :param item: RectangleItem or PolygonItem
+        """
         if not self.parent.anno_project.class_names:
             add_label_dialog = AddLabelDialog(self)
             if add_label_dialog.exec() == QDialog.Accepted:
@@ -335,62 +357,11 @@ class ImageView(QGraphicsView):
 
         super().mouseReleaseEvent(event)
 
-    def draw_polygon(self):
-        if self.polygon_item in self.scene().items():
-            self.scene().removeItem(self.polygon_item)
-
-        polygon_item = PolygonItem(
-            QPolygonF(self.polygon_points),
-            self.label_name,
-            self.label_id,
-            self.image_width,
-            self.image_height,
-            self,
-        )
-        self.scene().addItem(polygon_item)
-        self.polygon_item = polygon_item
-
-    def complete_polygon(self):
-        polygon_item = PolygonItem(
-            QPolygonF(self.polygon_points),
-            self.generate_label_name(self.label_name),
-            self.label_id,
-            self.image_width,
-            self.image_height,
-            self,
-        )
-        self.current_labels.append(polygon_item)
-        self.scene().addItem(polygon_item)
-
-        self.scene().removeItem(self.polygon_item)
-        self.polygon_item = None
-        self.polygon_points = []
-
-        self.drawing_label.emit(
-            (polygon_item.boundingRect().width(), polygon_item.boundingRect().height()),
-            False,
-        )
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Delete:
-            self.delete_selected_rectangles(self.scene().selectedItems())
-
-        elif event.key() == Qt.Key_Space:
-            self.setDragMode(QGraphicsView.ScrollHandDrag)
-            self.setCursor(Qt.ClosedHandCursor)
-            self.movable_disable()
-
-    def keyReleaseEvent(self, event):
-        if event.key() == Qt.Key_Space and not event.isAutoRepeat():
-            self.setDragMode(QGraphicsView.NoDrag)
-            if self.current_mode == "select":
-                self.set_select_mode()
-            elif self.current_mode == "rect_selection":
-                self.set_rect_selection()
-            elif self.current_mode == "polygon_selection":
-                self.set_polygon_selection()
-
     def draw_rectangle(self):
+        """
+        Draw rectangle
+        Function is called when mouse is moved during drawing
+        """
         if self.rect_item in self.scene().items():
             self.scene().removeItem(self.rect_item)
 
@@ -420,14 +391,71 @@ class ImageView(QGraphicsView):
         )
         self.scene().addItem(self.rect_item)
 
-    def calculate_rectangle(self):
-        x1, y1 = self.start_point.x(), self.start_point.y()
-        x2, y2 = self.end_point.x(), self.end_point.y()
-        return QRectF(
-            QPointF(min(x1, x2), min(y1, y2)), QPointF(max(x1, x2), max(y1, y2))
+    def draw_polygon(self):
+        """
+        Draw polygon
+        """
+        if self.polygon_item in self.scene().items():
+            self.scene().removeItem(self.polygon_item)
+
+        polygon_item = PolygonItem(
+            QPolygonF(self.polygon_points),
+            self.label_name,
+            self.label_id,
+            self.image_width,
+            self.image_height,
+            self,
+        )
+        self.scene().addItem(polygon_item)
+        self.polygon_item = polygon_item
+
+    def complete_polygon(self):
+        """
+        Complete polygon drawing and create PolygonItem
+        """
+        polygon_item = PolygonItem(
+            QPolygonF(self.polygon_points),
+            self.generate_label_name(self.label_name),
+            self.label_id,
+            self.image_width,
+            self.image_height,
+            self,
+        )
+        self.current_labels.append(polygon_item)
+        self.scene().addItem(polygon_item)
+
+        self.scene().removeItem(self.polygon_item)
+        self.polygon_item = None
+        self.polygon_points = []
+
+        self.drawing_label.emit(
+            (polygon_item.boundingRect().width(), polygon_item.boundingRect().height()),
+            False,
         )
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Delete:
+            self.delete_rectangles(self.scene().selectedItems())
+
+        elif event.key() == Qt.Key_Space:
+            self.setDragMode(QGraphicsView.ScrollHandDrag)
+            self.setCursor(Qt.ClosedHandCursor)
+            self.movable_disable()
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_Space and not event.isAutoRepeat():
+            self.setDragMode(QGraphicsView.NoDrag)
+            if self.current_mode == "select":
+                self.set_select_mode()
+            elif self.current_mode == "rect_selection":
+                self.set_rect_selection()
+            elif self.current_mode == "polygon_selection":
+                self.set_polygon_selection()
+
     def set_select_mode(self):
+        """
+        Set current mode to select
+        """
         self.setDragMode(QGraphicsView.RubberBandDrag)
         self.setCursor(Qt.ArrowCursor)
         self.current_mode = "select"
@@ -435,6 +463,9 @@ class ImageView(QGraphicsView):
         self.movable_enable()
 
     def set_rect_selection(self):
+        """
+        Set current mode to rect_selection
+        """
         self.setDragMode(QGraphicsView.NoDrag)
         self.setCursor(Qt.CrossCursor)
         self.current_mode = "rect_selection"
@@ -442,6 +473,9 @@ class ImageView(QGraphicsView):
         self.movable_disable()
 
     def set_polygon_selection(self):
+        """
+        Set current mode to polygon_selection
+        """
         self.setDragMode(QGraphicsView.NoDrag)
         self.setCursor(Qt.CrossCursor)
         self.current_mode = "polygon_selection"
@@ -449,6 +483,11 @@ class ImageView(QGraphicsView):
         self.movable_disable()
 
     def generate_label_name(self, label_str):
+        """
+        Generate label name
+        Label name is generated by adding number to the end of label_str
+        :param label_str: label name
+        """
         label_names = [item.label_name for item in self.current_labels]
         i = 0
         while True:
@@ -457,7 +496,11 @@ class ImageView(QGraphicsView):
                 return label_name
             i += 1
 
-    def delete_selected_rectangles(self, labels):
+    def delete_rectangles(self, labels):
+        """
+        Delete selected rectangles
+        :param labels: list of labels
+        """
         for item in labels:
             self.scene().removeItem(item)
             self.current_labels.remove(item)
