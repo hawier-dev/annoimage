@@ -362,7 +362,7 @@ class AppGui(QVBoxLayout):
             for label in self.image_view.current_labels
             if label.label_name in selected_labels
         ]
-        self.image_view.delete_selected_rectangles(labels_to_delete)
+        self.image_view.delete_rectangles(labels_to_delete)
 
     def update_selection(self):
         for rectangle in self.anno_project.current_image.labels:
