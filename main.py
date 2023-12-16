@@ -68,9 +68,7 @@ class MyApp(QMainWindow):
                 self.show_app_gui(anno_project)
 
     def show_welcome_widget(self):
-        welcome_widget = WelcomeWidget(
-            self.settings["last_projects"]
-        )
+        welcome_widget = WelcomeWidget(self.settings["last_projects"])
         welcome_widget.new_button.clicked.connect(self.new_project)
         welcome_widget.load_button.clicked.connect(self.load_project)
         welcome_widget.project_list.doubleClicked.connect(self.load_project)
@@ -83,7 +81,11 @@ class MyApp(QMainWindow):
                 self.settings["last_projects"].remove(project)
 
         self.settings["last_projects"].append(
-            {"name": anno_project.name, "path": anno_project.path, "date_created": anno_project.date_created}
+            {
+                "name": anno_project.name,
+                "path": anno_project.path,
+                "date_created": anno_project.date_created,
+            }
         )
         self.save_settings()
         if self.settings["maximized"]:

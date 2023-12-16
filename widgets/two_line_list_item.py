@@ -1,5 +1,4 @@
-from PySide6.QtGui import QPalette, QColor
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem
 
 
 class TwoLineListItem(QWidget):
@@ -22,3 +21,9 @@ class TwoLineListItem(QWidget):
 
         layout.addWidget(title_label)
         layout.addWidget(subtitle_label)
+
+    def add_to_list(self, list_widget):
+        item = QListWidgetItem(list_widget)
+        item.setSizeHint(self.sizeHint())
+        list_widget.addItem(item)
+        list_widget.setItemWidget(item, self)

@@ -39,7 +39,6 @@ class ImageView(QGraphicsView):
 
     def __init__(self, parent=None):
         super().__init__()
-        self.zoom_factor = 0
         self.image_loader = None
         self.drawing = False
         self.start_point = None
@@ -52,21 +51,6 @@ class ImageView(QGraphicsView):
 
         self.output_path = None
         self.current_labels = []
-        # self.coco_dataset = {
-        #     "info": {
-        #         "description": "Dataset for image segmentation",
-        #         "url": "",
-        #         "version": "1.0",
-        #         "year": 2021,
-        #         "contributor": "",
-        #         "date_created": datetime.datetime.now().strftime("%Y/%m/%d"),
-        #         "creator": f"{TITLE} {VERSION}",
-        #     },
-        #     "licenses": [],
-        #     "images": [],
-        #     "annotations": [],
-        #     "categories": [],
-        # }
 
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
@@ -103,25 +87,12 @@ class ImageView(QGraphicsView):
         )
         self.loading_label.setVisible(False)
 
-    def dragEnterEvent(self, event: QDragEnterEvent):
-        mime_data = event.mimeData()
-        if mime_data.hasUrls():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event: QDropEvent):
-        mime_data = event.mimeData()
-        if mime_data.hasUrls():
-            file_path = mime_data.urls()[0].toLocalFile()
-            self.load_image(file_path)
-
-    def dragMoveEvent(self, event):
-        event.accept()
-
     def wheelEvent(self, event):
         zoom_in = event.angleDelta().y() > 0
         zoom_factor = 1.1 if zoom_in else 1 / 1.1
 
-        self.zoom_factor *= zoom_factor
+        print(zoom_factor)
+
         self.scale(zoom_factor, zoom_factor)
 
     def load_image(self, label_image: LabelImage):

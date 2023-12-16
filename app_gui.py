@@ -22,6 +22,7 @@ from models.label_image import LabelImage
 from widgets.image_view import ImageView
 from widgets.labels_manage_dialog import LabelsManageDialog
 from widgets.list_widget import ListWidget
+from widgets.rectangle_item import RectangleItem
 from widgets.two_line_list_item import TwoLineListItem
 
 
@@ -255,11 +256,8 @@ class AppGui(QVBoxLayout):
         """
         self.images_list.clear()
         for image in self.anno_project.images:
-            item = QListWidgetItem(self.images_list)
             item_widget = TwoLineListItem(image.name, os.path.dirname(image.path))
-            item.setSizeHint(item_widget.sizeHint())
-            self.images_list.addItem(item)
-            self.images_list.setItemWidget(item, item_widget)
+            item_widget.add_to_list(self.images_list)
 
     def load_image(self, image: LabelImage or QModelIndex):
         """
@@ -293,7 +291,11 @@ class AppGui(QVBoxLayout):
 
         self.labels_list.clear()
         for item in self.image_view.current_labels:
-            self.labels_list.addItem(item.label_name)
+            list_widget = TwoLineListItem(
+                item.label_name,
+                "Rectangle" if isinstance(item, RectangleItem) else "Polygon",
+            )
+            list_widget.add_to_list(self.labels_list)
 
     def check_if_saved(self):
         if self.anno_project.is_saved():
