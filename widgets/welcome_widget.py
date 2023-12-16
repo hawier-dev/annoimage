@@ -21,6 +21,8 @@ class WelcomeWidget(QWidget):
         self.setContentsMargins(100, 20, 100, 20)
         self.main_layout = QVBoxLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
+        # sort by date created
+        last_projects = sorted(last_projects, key=lambda x: x["date_created"], reverse=True)
 
         self.title_widget = TitleWidget()
         self.main_layout.addWidget(self.title_widget)
@@ -49,24 +51,28 @@ class WelcomeWidget(QWidget):
 
         self.main_layout.addWidget(self.buttons_widget)
 
-        if last_projects:
-            self.project_list_label = QLabel("Last Projects")
-            self.project_list = QListWidget()
-            self.project_list.setStyleSheet(
-                f"background-color: {BACKGROUND_COLOR};"
-                "QListWidget::item {"
-                f"background-color: {SURFACE_COLOR};"
-                "}"
-            )
-            for project in last_projects:
-                item = QListWidgetItem(self.project_list)
-                item_widget = TwoLineListItem(project["name"], project["path"])
-                item.setSizeHint(item_widget.sizeHint())
-                self.project_list.addItem(item)
-                self.project_list.setItemWidget(item, item_widget)
+        self.project_list_label = QLabel("Last Projects")
+        self.project_list = QListWidget()
+        self.project_list.setStyleSheet(
+            f"background-color: {BACKGROUND_COLOR};"
+            "QListWidget::item {"
+            f"background-color: {SURFACE_COLOR};"
+            "}"
+        )
+        for project in last_projects:
+            item = QListWidgetItem(self.project_list)
+            item_widget = TwoLineListItem(project["name"], project["path"])
+            item.setSizeHint(item_widget.sizeHint())
+            self.project_list.addItem(item)
+            self.project_list.setItemWidget(item, item_widget)
 
+        if not last_projects:
+            self.project_list_label.hide()
+            self.project_list.hide()
+        else:
             self.main_layout.addSpacing(20)
-            self.main_layout.addWidget(self.project_list_label)
-            self.main_layout.addWidget(self.project_list)
+
+        self.main_layout.addWidget(self.project_list_label)
+        self.main_layout.addWidget(self.project_list)
 
         self.setLayout(self.main_layout)

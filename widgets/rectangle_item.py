@@ -9,18 +9,18 @@ class RectangleItem(QGraphicsRectItem):
 
     def __init__(
         self,
+        parent,
         start_point,
         end_point,
         label_name,
         label_name_id,
-        on_update=None,
         temporary=False,
     ):
         super().__init__()
         self.setRect(self.calculate_rectangle(start_point, end_point))
 
         self.temporary = temporary
-        self.on_update = on_update
+        self.parent = parent
 
         self.resize_handles = []
 
@@ -46,15 +46,16 @@ class RectangleItem(QGraphicsRectItem):
     def to_dict(self):
         return {
             "type": "RectangleItem",
-            "start_point": (self.start_point.x(), self.start_point.y()),
-            "end_point": (self.end_point.x(), self.end_point.y()),
+            "start_point": [self.start_point.x(), self.start_point.y()],
+            "end_point": [self.end_point.x(), self.end_point.y()],
             "label_name": self.label_name,
             "label_name_id": self.label_name_id,
         }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data, parent):
         ri = cls(
+            parent,
             QPointF(*data["start_point"]),
             QPointF(*data["end_point"]),
             data["label_name"],
@@ -120,8 +121,7 @@ class RectangleItem(QGraphicsRectItem):
         self.setRect(self.calculate_rectangle(self.start_point, self.end_point))
         self.setPos(0, 0)
         self.update_handlers()
-        if self.on_update:
-            self.on_update()
+        self.parent.update_labels()
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemSelectedChange:
@@ -147,6 +147,12 @@ class RectangleItem(QGraphicsRectItem):
     def hoverLeaveEvent(self, event):
         if self.selectable:
             self.set_default_color()
+
+    def resize_started(self):
+        self.parent.movable_disable()
+
+    def resize_stopped(self):
+        self.parent.movable_enable()
 
     def add_resize_handles(self):
         handle_size = 5
@@ -194,15 +200,18 @@ class RectangleItem(QGraphicsRectItem):
 class HandleItem(QGraphicsEllipseItem):
     def __init__(self, x, y, w, h, parent):
         super().__init__(x, y, w, h, parent)
+        self.parent = parent
         pen = QPen(QColor(0, 0, 0))
         pen.setWidth(0.5)
         pen.setStyle(Qt.SolidLine)
 
         self.setPen(pen)
 
+    def mousePressEvent(self, event):
+        self.parent.resize_started()
+        super().mousePressEvent(event)
+
     def mouseMoveEvent(self, event):
-        parent = self.parentItem()
-        parent.image_view.movable_disable()
         x_offset, y_offset = self.data(0)
         x, y = (
             event.pos().x() - event.lastPos().x(),
@@ -210,36 +219,36 @@ class HandleItem(QGraphicsEllipseItem):
         )
 
         if x_offset == 0:
-            new_width = parent.rect().width() - x
-            new_x = parent.rect().x() + (parent.rect().width() - new_width)
+            new_width = self.parent.rect().width() - x
+            new_x = self.parent.rect().x() + (self.parent.rect().width() - new_width)
         else:
-            new_width = parent.rect().width() + x
-            new_x = parent.rect().x()
+            new_width = self.parent.rect().width() + x
+            new_x = self.parent.rect().x()
 
         if y_offset == 0:
-            new_height = parent.rect().height() - y
-            new_y = parent.rect().y() + (parent.rect().height() - new_height)
+            new_height = self.parent.rect().height() - y
+            new_y = self.parent.rect().y() + (self.parent.rect().height() - new_height)
         else:
-            new_height = parent.rect().height() + y
-            new_y = parent.rect().y()
+            new_height = self.parent.rect().height() + y
+            new_y = self.parent.rect().y()
 
-        x1 = max(0, min(new_x, parent.image_width))
-        y1 = max(0, min(new_y, parent.image_height))
-        x2 = max(0, min(new_x + new_width, parent.image_width))
-        y2 = max(0, min(new_y + new_height, parent.image_height))
+        x1 = max(0, min(new_x, self.parent.image_width))
+        y1 = max(0, min(new_y, self.parent.image_height))
+        x2 = max(0, min(new_x + new_width, self.parent.image_width))
+        y2 = max(0, min(new_y + new_height, self.parent.image_height))
 
-        parent.start_point = QPointF(x1, y1)
-        parent.end_point = QPointF(x2, y2)
-        parent.setRect(parent.calculateRectangle(parent.start_point, parent.end_point))
+        self.parent.start_point = QPointF(x1, y1)
+        self.parent.end_point = QPointF(x2, y2)
+        self.parent.setRect(
+            self.parent.calculateRectangle(
+                self.parent.start_point, self.parent.end_point
+            )
+        )
         # new_rect = QRectF(new_x, new_y, new_width, new_height)
-        # parent.setRect(new_rect)
+        # self.parent.setRect(new_rect)
         super().mouseMoveEvent(event)
-        parent.update_handlers()
+        self.parent.update_handlers()
 
     def mouseReleaseEvent(self, event):
-        parent = self.parentItem()
-        parent.image_view.movable_enable()
-        parent.image_view.parent.update_labels_list()
-        if parent.on_update:
-            parent.on_update()
+        self.parent.resize_stopped()
         super().mouseReleaseEvent(event)

@@ -10,17 +10,16 @@ from PySide6.QtWidgets import (
     QListWidget,
     QLabel,
     QPushButton,
-    QLineEdit,
     QComboBox,
     QMenu,
-    QWidgetAction, QSplitter, QListWidgetItem,
+    QWidgetAction,
+    QListWidgetItem,
 )
 
 from constants import *
 from models.anno_project import AnnoProject
 from models.label_image import LabelImage
 from widgets.image_view import ImageView
-from widgets.labels_count_dialog import LabelsCountDialog
 from widgets.labels_manage_dialog import LabelsManageDialog
 from widgets.list_widget import ListWidget
 from widgets.two_line_list_item import TwoLineListItem
@@ -35,7 +34,7 @@ class AppGui(QVBoxLayout):
 
         self.setContentsMargins(0, 0, 0, 0)
 
-        # Top bar with app name and qcombobox with annotation types
+        # Top bar with app name and combobox with annotation types
         self.top_bar = QWidget()
         self.top_bar.setStyleSheet("padding: 5px;")
         self.top_bar_layout = QHBoxLayout()
@@ -125,10 +124,9 @@ class AppGui(QVBoxLayout):
         self.center_layout = QVBoxLayout()
 
         self.image_view = ImageView(parent=self)
-        self.image_view.label_added.connect(self.update_labels_list)
-        self.image_view.label_added.connect(self.check_if_saved)
-        self.image_view.updated_labels.connect(self.update_labels_list)
+        self.image_view.labels_updated.connect(self.update_project)
         self.image_view.drawing_label.connect(self.update_box_size_label)
+        self.image_view.on_image_loaded.connect(self.load_labels)
         self.image_view.scene().selectionChanged.connect(self.update_selection)
 
         self.center_layout.addWidget(self.image_view)
@@ -190,12 +188,11 @@ class AppGui(QVBoxLayout):
         self.addSpacing(5)
 
         self.update_image_list()
+        self.set_select_mode()
         try:
             self.set_label_name(self.anno_project.class_names[0])
         except IndexError:
             pass
-        # self.main_window.addToolBar(Qt.LeftToolBarArea, self.left_toolbar)
-        # self.open_directory()
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.ContextMenu and source is self.labels_list:
@@ -253,6 +250,10 @@ class AppGui(QVBoxLayout):
         return super(QVBoxLayout, self).eventFilter(source, event)
 
     def update_image_list(self):
+        """
+        Updates image list widget with images from project
+        """
+        self.images_list.clear()
         for image in self.anno_project.images:
             item = QListWidgetItem(self.images_list)
             item_widget = TwoLineListItem(image.name, os.path.dirname(image.path))
@@ -260,17 +261,39 @@ class AppGui(QVBoxLayout):
             self.images_list.addItem(item)
             self.images_list.setItemWidget(item, item_widget)
 
-    def load_image(self, image):
+    def load_image(self, image: LabelImage or QModelIndex):
+        """
+        Loads image to image viewer
+        :type image: LabelImage
+        """
         if type(image) is QModelIndex:
             label_image = self.anno_project.images[image.row()]
             self.anno_project.set_current_image(label_image)
             self.image_view.load_image(label_image)
+            self.images_list.setCurrentRow(image.row())
+
         elif type(image) is LabelImage:
             self.anno_project.set_current_image(image)
             self.image_view.load_image(image)
 
-    def set_current_image(self, label_image: LabelImage):
-        self.images_list.setCurrentRow(self.anno_project.images.index(label_image))
+    def load_labels(self):
+        """
+        Loads labels from current image to image viewer
+        """
+        self.image_view.load_labels(self.anno_project.current_image.labels)
+
+    def update_project(self):
+        """
+        Updates project with current labels from image viewer
+        """
+        self.anno_project.current_image.labels = [
+            item.to_dict() for item in self.image_view.current_labels
+        ]
+        self.check_if_saved()
+
+        self.labels_list.clear()
+        for item in self.image_view.current_labels:
+            self.labels_list.addItem(item.label_name)
 
     def check_if_saved(self):
         if self.anno_project.is_saved():
@@ -285,15 +308,6 @@ class AppGui(QVBoxLayout):
             self.box_size_label.setText("")
         else:
             self.box_size_label.setText(f"{box_size[0], box_size[1]}")
-
-    def set_dataset_type(self, dataset_type):
-        self.image_view.dataset_type = dataset_type
-        if dataset_type == "YOLO":
-            self.polygon_button.setEnabled(False)
-            self.polygon_button.setVisible(False)
-        elif dataset_type == "COCO":
-            self.polygon_button.setEnabled(True)
-            self.polygon_button.setVisible(True)
 
     def set_label_name(self, label_name):
         self.image_view.label_name = label_name
@@ -324,7 +338,7 @@ class AppGui(QVBoxLayout):
         self.label_name_selector.clear()
         self.label_name_selector.addItems(self.anno_project.class_names)
         self.image_view.update_label_names()
-        self.update_labels_list()
+        self.update_project()
 
     def delete_selected_photos(self):
         selected_items = self.images_list.selectedItems()
@@ -345,18 +359,13 @@ class AppGui(QVBoxLayout):
         selected_labels = [item.text() for item in selected_items]
         labels_to_delete = [
             label
-            for label in self.image_view.labels
+            for label in self.image_view.current_labels
             if label.label_name in selected_labels
         ]
         self.image_view.delete_selected_rectangles(labels_to_delete)
 
-    def update_labels_list(self, *args):
-        self.labels_list.clear()
-        for item in self.anno_project.current_image.labels:
-            self.labels_list.addItem(item.label_name)
-
     def update_selection(self):
-        for rectangle in self.image_view.labels:
+        for rectangle in self.anno_project.current_image.labels:
             if rectangle.isSelected():
                 self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[
                     0

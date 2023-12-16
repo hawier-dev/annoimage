@@ -4,7 +4,7 @@ import sys
 
 from PySide6.QtCore import Qt, QModelIndex
 from PySide6.QtGui import QPalette, QColor, QFontDatabase, QIcon
-from PySide6.QtWidgets import QMainWindow, QWidget, QApplication, QFileDialog
+from PySide6.QtWidgets import QMainWindow, QWidget, QApplication, QFileDialog, QDialog
 from appdirs import user_data_dir
 from app_gui import AppGui
 from constants import *
@@ -48,11 +48,29 @@ class MyApp(QMainWindow):
             )
 
         if path:
-            anno_project = AnnoProject.load(path, self)
-            self.show_app_gui(anno_project)
+            if not os.path.exists(path):
+                delete_dialog = YesOrNoDialog(
+                    self,
+                    "File Not Found",
+                    "File Not Found",
+                    "The project you are trying to open does not exist.",
+                    "Do you want to remove it from the list?",
+                )
+                result = delete_dialog.exec()
+                if result == QDialog.Accepted:
+                    for project in self.settings["last_projects"]:
+                        if os.path.abspath(project["path"]) == os.path.abspath(path):
+                            self.settings["last_projects"].remove(project)
+                            self.save_settings()
+                    self.show_welcome_widget()
+            else:
+                anno_project = AnnoProject.load(path, self)
+                self.show_app_gui(anno_project)
 
     def show_welcome_widget(self):
-        welcome_widget = WelcomeWidget(self.settings["last_projects"])
+        welcome_widget = WelcomeWidget(
+            self.settings["last_projects"]
+        )
         welcome_widget.new_button.clicked.connect(self.new_project)
         welcome_widget.load_button.clicked.connect(self.load_project)
         welcome_widget.project_list.doubleClicked.connect(self.load_project)
@@ -65,9 +83,14 @@ class MyApp(QMainWindow):
                 self.settings["last_projects"].remove(project)
 
         self.settings["last_projects"].append(
-            {"name": anno_project.name, "path": anno_project.path}
+            {"name": anno_project.name, "path": anno_project.path, "date_created": anno_project.date_created}
         )
         self.save_settings()
+        if self.settings["maximized"]:
+            self.showMaximized()
+
+        self.setWindowTitle(f"{TITLE} - {anno_project.name}")
+
         self.app_gui = AppGui(anno_project, self)
         self.central_widget.setLayout(self.app_gui)
         self.setCentralWidget(self.central_widget)
@@ -83,7 +106,7 @@ class MyApp(QMainWindow):
         settings_path = user_data_dir(TITLE, AUTHOR)
         os.makedirs(settings_path, exist_ok=True)
         settings_file = os.path.join(settings_path, "settings.json")
-        settings = {"last_projects": []}
+        settings = {"last_projects": [], "maximized": True}
         if os.path.exists(settings_file):
             with open(settings_file, "r") as f:
                 settings = json.load(f)
@@ -94,25 +117,9 @@ class MyApp(QMainWindow):
 
         return settings
 
-    # def closeEvent(self, event):
-    #     if self.app_gui:
-    #         saved = self.app_gui.anno_project.is_saved()
-    #         if not saved:
-    #             yes_no_dialog = YesOrNoDialog(
-    #                 self,
-    #                 window_title="Save changes?",
-    #                 title="Save changes?",
-    #                 text="You have unsaved changes. Do you want to save them?",
-    #                 cancel=True,
-    #             )
-    #             result = yes_no_dialog.exec_()
-    #             if result == YesOrNoDialog.Accepted:
-    #                 self.app_gui.save_labels()
-    #             elif result == YesOrNoDialog.Rejected and not yes_no_dialog.canceled:
-    #                 self.close()
-    #             else:
-    #                 pass
-    #
+    def closeEvent(self, event):
+        self.settings["maximized"] = self.isMaximized()
+        self.save_settings()
 
 
 def create_palette():
@@ -150,8 +157,15 @@ def main():
         + f"{SURFACE_COLOR}"
         + "}"
         "QLineEdit:focus {border: 1px solid " + f"{BACKGROUND_COLOR2}" + "}"
-        "QListWidget::item { height: 30px; background-color: " + f"{SURFACE_COLOR}" + "; margin: 1px;}"
-        "QListWidget::item:selected { background-color: " + f"{BACKGROUND_COLOR2}" + "; color: #ffffff;}"
+        "QListWidget::item { height: 30px; background-color: "
+        + f"{SURFACE_COLOR}"
+        + "; margin: 1px;}"
+        "QListWidget::item:hover { cursor: pointer; background-color: "
+        + f"{BACKGROUND_COLOR2}"
+        + ";}"
+        "QListWidget::item:selected { background-color: "
+        + f"{BACKGROUND_COLOR3}"
+        + "; color: #ffffff;}"
         "QListWidget::item:focus {outline: none;}"
         "QToolBar {border: none; margin: 0px; padding: 0px; spacing: 0px;}"
         "QToolButton {background-color: "

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QWidget,
@@ -185,6 +187,7 @@ class NewProjectWidget(QWidget):
                 for i, path in enumerate(images_paths)
             ],
             class_names=class_names,
+            date_created=datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
         )
         project.save_project()
         self.project_created.emit(project)

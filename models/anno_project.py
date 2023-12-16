@@ -12,11 +12,13 @@ class AnnoProject:
         images: list,
         class_names: list,
         dataset_type: str,
+        date_created: str,
         path=None,
     ):
         self.main_window = main_window
         self.path = path
         self.name = name
+        self.date_created = date_created
 
         self.class_names = class_names
         self.dataset_type = dataset_type
@@ -34,12 +36,7 @@ class AnnoProject:
             if not self.path:
                 return
 
-        json_data = {
-            "name": self.name,
-            "class_names": self.class_names,
-            "dataset_type": self.dataset_type,
-            "images": [image.to_dict() for image in self.images],
-        }
+        json_data = self.to_dict()
         with open(self.path, "w") as file:
             json.dump(json_data, file)
 
@@ -52,11 +49,23 @@ class AnnoProject:
             name = json_data.get("name")
             class_names = json_data.get("class_names")
             dataset_type = json_data.get("dataset_type")
+            date_created = json_data.get("date_created")
             images = [
                 LabelImage.from_dict(image_data)
                 for image_data in json_data.get("images")
             ]
-            return cls(main_window, name, images, class_names, dataset_type, path)
+            return cls(
+                main_window, name, images, class_names, dataset_type, date_created, path
+            )
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "class_names": self.class_names,
+            "dataset_type": self.dataset_type,
+            "date_created": self.date_created,
+            "images": [image.to_dict() for image in self.images],
+        }
 
     def get_current_image(self):
         for image in self.images:
@@ -68,13 +77,8 @@ class AnnoProject:
         self.current_image = label_image
 
     def is_saved(self):
-        current_state = {
-            "name": self.name,
-            "class_names": self.class_names,
-            "dataset_type": self.dataset_type,
-            "images": [image.to_dict() for image in self.images],
-        }
-        print(self.last_saved_state == current_state)
+        current_state = self.to_dict()
+
         return self.last_saved_state == current_state
 
     # def load_labels(self, labels_path):

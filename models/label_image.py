@@ -17,10 +17,9 @@ class LabelImage:
         return {
             "image_id": self.image_id,
             "path": self.path,
-            "labels": [label.to_dict() for label in self.labels],
+            "labels": self.labels,
         }
 
     @classmethod
     def from_dict(cls, label_dict: dict):
-        labels = [RectangleItem.from_dict(label) for label in label_dict["labels"]]
-        return cls(label_dict["image_id"], label_dict["path"], labels)
+        return cls(label_dict["image_id"], label_dict["path"], label_dict["labels"])
