@@ -1,15 +1,32 @@
-# AnnoImage
+# AnnoImage: The Image Annotation Tool
 
-AnnoImage is an image annotation tool that allows you to annotate images for object detection.
+AnnoImage is an intuitive and efficient image annotation tool designed for object detection tasks. It offers a user-friendly and fast way to mark elements in images, essential for projects involving machine learning and computer vision.
 
 ![AnnoImage](./screenshot.png)
 *(Image used in screenshot is from [Unsplash](https://unsplash.com/photos/green-single-cab-pickup-truck-parked-beside-building-z8ym2XTZ0ig?utm_content=creditShareLink&utm_medium=referral&utm_source=unsplash))*
 
-## Features
+## Key Features
 
-- [x] Annotate images for object detection
-- [x] Project-based workflow
-- [ ] Export annotations to multiple formats
-- [ ] AI assisted annotation
+- Annotate Images for Object Detection: Easily mark objects in your images with precision.
 
-**(Work in progress)**
+- Project-Based Workflow: Organize your annotation work within structured projects for better management.
+
+- *(Work in progress)* Export Annotations: Export your annotations in multiple formats for compatibility with various ML models. 
+
+- *(Coming soon)* AI-Assisted Annotation: Leverage AI tools to accelerate the annotation process.
+
+## Getting Started
+
+- Installation: [Installation](./Installation.md)
+
+- Creating Your First Project: [First project](./first_project.md)
+
+- Basic Annotation Guide: [Annotation guide](annotation_guide.md)
+
+## License
+
+AnnoImage is released under Apache-2.0 License, see [LICENSE](./LICENSE) for more details.
+
+## Contact
+
+For support, feedback, or inquiries, contact us [here](mailto:mikolajbadyl0@gmail.com).
