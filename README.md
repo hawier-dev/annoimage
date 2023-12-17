@@ -1,6 +1,6 @@
 # AnnoImage: The Image Annotation Tool
 
-**(WORK IN PROGRESS)**
+**(Work In Progress)**
 
 **AnnoImage** is an intuitive and efficient image annotation tool designed for object detection tasks. It offers a user-friendly and fast way to mark elements in images, essential for projects involving machine learning and computer vision.
 
