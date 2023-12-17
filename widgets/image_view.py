@@ -91,8 +91,6 @@ class ImageView(QGraphicsView):
         zoom_in = event.angleDelta().y() > 0
         zoom_factor = 1.1 if zoom_in else 1 / 1.1
 
-        print(zoom_factor)
-
         self.scale(zoom_factor, zoom_factor)
 
     def load_image(self, label_image: LabelImage):
@@ -152,7 +150,12 @@ class ImageView(QGraphicsView):
                 new_label = RectangleItem.from_dict(label, self)
                 self.current_labels.append(new_label)
                 self.scene().addItem(new_label)
+            elif label["type"] == "PolygonItem":
+                new_label = PolygonItem.from_dict(label, self)
+                self.current_labels.append(new_label)
+                self.scene().addItem(new_label)
 
+        self.set_mode(self.current_mode)
         self.labels_updated.emit()
 
     def update_labels(self):
@@ -265,68 +268,89 @@ class ImageView(QGraphicsView):
         self.drawing_label.emit(size, False)
 
     def mouseReleaseEvent(self, event):
+        """
+        Handle mouse release events for different selection modes.
+
+        :param event: The QMouseEvent triggered on mouse release.
+        """
         if self.drawing:
             self.end_point = self.mapToScene(event.pos())
             if self.current_mode == "rect_selection":
-                self.draw_rectangle()
-                self.drawing = False
-
-                item = RectangleItem(
-                    self,
-                    self.start_point,
-                    self.end_point,
-                    self.generate_label_name(self.label_name),
-                    self.label_id,
-                )
-
-                if self.current_mode == "select":
-                    item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
-                    item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
-
-                if item.rect().width() < 5 or item.rect().height() < 5:
-                    self.scene().removeItem(item)
-                    self.scene().removeItem(self.rect_item)
-                    return
-
-                self.process_item(item)
-                self.scene().removeItem(self.rect_item)
-
+                self.handle_rectangle_selection()
             elif self.current_mode == "polygon_selection":
-                double_click = False
-                if not self.timer.isActive():
-                    self.timer.start(200)
-                else:
-                    self.timer.stop()
-                    double_click = True
-                self.polygon_points.append(self.end_point)
-                self.draw_polygon()
-
-                if len(self.polygon_points) >= 3 and double_click:
-                    # Call complete_polygon function
-                    item = PolygonItem(
-                        QPolygonF(self.polygon_points),
-                        self.generate_label_name(self.label_name),
-                        self.label_id,
-                        self.image_width,
-                        self.image_height,
-                        self,
-                    )
-                    self.process_item(item)
-                    self.scene().removeItem(self.polygon_item)
-                    self.polygon_item = None
-                    self.polygon_points = []
-
-                    self.drawing = False
+                self.handle_polygon_selection()
 
         elif event.button() == Qt.MiddleButton:
             self.setDragMode(QGraphicsView.NoDrag)
-            if self.current_mode == "select":
-                self.set_select_mode()
-
-            elif self.current_mode == "rect_selection":
-                self.set_rect_selection()
+            self.set_mode(self.current_mode)
 
         super().mouseReleaseEvent(event)
+
+    def handle_rectangle_selection(self):
+        """
+        Handle the creation and processing of a rectangle selection.
+        """
+        self.draw_rectangle()
+        self.drawing = False
+
+        item = self.create_rectangle_item()
+        if item.rect().width() < 5 or item.rect().height() < 5:
+            self.remove_temporary_items()
+            return
+
+        self.process_item(item)
+        self.remove_temporary_items()
+
+    def handle_polygon_selection(self):
+        """
+        Handle the creation and processing of a polygon selection.
+        """
+        double_click = self.detect_double_click()
+        self.polygon_points.append(self.end_point)
+        self.draw_polygon()
+
+        if len(self.polygon_points) >= 3 and double_click:
+            self.complete_polygon()
+
+    def create_rectangle_item(self):
+        """
+        Create and configure a RectangleItem based on the current selection.
+
+        :return: The created RectangleItem.
+        """
+        item = RectangleItem(
+            self,
+            self.start_point,
+            self.end_point,
+            self.generate_label_name(self.label_name),
+            self.label_id,
+        )
+
+        if self.current_mode == "select":
+            item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+            item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+
+        return item
+
+    def remove_temporary_items(self):
+        """
+        Remove temporary items from the scene.
+        """
+        self.scene().removeItem(self.rect_item)
+
+    def detect_double_click(self):
+        """
+        Detect if a double-click event has occurred.
+
+        :return: True if a double-click event is detected, False otherwise.
+        """
+        double_click = False
+        if not self.timer.isActive():
+            self.timer.start(200)
+        else:
+            self.timer.stop()
+            double_click = True
+        return double_click
 
     def draw_rectangle(self):
         """
@@ -370,27 +394,32 @@ class ImageView(QGraphicsView):
             self.scene().removeItem(self.polygon_item)
 
         polygon_item = PolygonItem(
+            self,
             QPolygonF(self.polygon_points),
             self.label_name,
             self.label_id,
-            self.image_width,
-            self.image_height,
-            self,
         )
+        self.drawing_label.emit(
+            (polygon_item.boundingRect().width(), polygon_item.boundingRect().height()),
+            True,
+        )
+
         self.scene().addItem(polygon_item)
         self.polygon_item = polygon_item
 
     def complete_polygon(self):
         """
-        Complete polygon drawing and create PolygonItem
+        Complete polygon drawing and create PolygonItem.
+        A polygon must have at least three points.
         """
+        if len(self.polygon_points) < 3:
+            return
+
         polygon_item = PolygonItem(
+            self,
             QPolygonF(self.polygon_points),
             self.generate_label_name(self.label_name),
             self.label_id,
-            self.image_width,
-            self.image_height,
-            self,
         )
         self.current_labels.append(polygon_item)
         self.scene().addItem(polygon_item)
@@ -398,11 +427,13 @@ class ImageView(QGraphicsView):
         self.scene().removeItem(self.polygon_item)
         self.polygon_item = None
         self.polygon_points = []
-
+        self.drawing = False
         self.drawing_label.emit(
             (polygon_item.boundingRect().width(), polygon_item.boundingRect().height()),
             False,
         )
+
+        self.labels_updated.emit()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Delete:
@@ -416,42 +447,28 @@ class ImageView(QGraphicsView):
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Space and not event.isAutoRepeat():
             self.setDragMode(QGraphicsView.NoDrag)
-            if self.current_mode == "select":
-                self.set_select_mode()
-            elif self.current_mode == "rect_selection":
-                self.set_rect_selection()
-            elif self.current_mode == "polygon_selection":
-                self.set_polygon_selection()
+            self.set_mode(self.current_mode)
 
-    def set_select_mode(self):
+    def set_mode(self, mode):
         """
-        Set current mode to select
-        """
-        self.setDragMode(QGraphicsView.RubberBandDrag)
-        self.setCursor(Qt.ArrowCursor)
-        self.current_mode = "select"
+        Set the current mode for the ImageView.
 
-        self.movable_enable()
-
-    def set_rect_selection(self):
+        :param mode: A string representing the mode to be set.
+                     Valid values are 'select', 'rect_selection', 'polygon_selection'.
         """
-        Set current mode to rect_selection
-        """
-        self.setDragMode(QGraphicsView.NoDrag)
-        self.setCursor(Qt.CrossCursor)
-        self.current_mode = "rect_selection"
+        if mode not in ["select", "rect_selection", "polygon_selection"]:
+            raise ValueError(f"Invalid mode: {mode}")
 
-        self.movable_disable()
+        if mode == "select":
+            self.setDragMode(QGraphicsView.RubberBandDrag)
+            self.setCursor(Qt.ArrowCursor)
+            self.movable_enable()
+        else:
+            self.setDragMode(QGraphicsView.NoDrag)
+            self.setCursor(Qt.CrossCursor)
+            self.movable_disable()
 
-    def set_polygon_selection(self):
-        """
-        Set current mode to polygon_selection
-        """
-        self.setDragMode(QGraphicsView.NoDrag)
-        self.setCursor(Qt.CrossCursor)
-        self.current_mode = "polygon_selection"
-
-        self.movable_disable()
+        self.current_mode = mode
 
     def generate_label_name(self, label_str):
         """

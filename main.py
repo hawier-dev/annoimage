@@ -9,6 +9,7 @@ from appdirs import user_data_dir
 from app_gui import AppGui
 from constants import *
 from models.anno_project import AnnoProject
+from widgets.about_dialog import AboutDialog
 from widgets.new_project_widget import NewProjectWidget
 from widgets.welcome_widget import WelcomeWidget
 from widgets.yes_or_no_dialog import YesOrNoDialog
@@ -27,7 +28,7 @@ class MyApp(QMainWindow):
 
         self.show_welcome_widget()
 
-    def new_project(self):
+    def new_project(self, ):
         new_project_widget = NewProjectWidget(self)
         new_project_widget.back_button.pressed.connect(self.show_welcome_widget)
         new_project_widget.project_created.connect(self.show_app_gui)
@@ -119,12 +120,16 @@ class MyApp(QMainWindow):
 
         return settings
 
+    def show_about_dialog(self):
+        about_dialog = AboutDialog(self)
+        about_dialog.exec()
+
     def closeEvent(self, event):
         self.settings["maximized"] = self.isMaximized()
         self.save_settings()
 
 
-def create_palette():
+def setup_palette():
     palette = QPalette()
     palette.setColor(QPalette.Window, QColor(*hex_to_rgb(BACKGROUND_COLOR)))
     palette.setColor(QPalette.WindowText, QColor(*hex_to_rgb(FOREGROUND_COLOR)))
@@ -143,128 +148,21 @@ def create_palette():
     return palette
 
 
+def setup_fonts():
+    QFontDatabase.addApplicationFont("fonts/Inter-Medium.ttf")
+    QFontDatabase.addApplicationFont("fonts/Inter-Bold.ttf")
+
+
 def main():
     app = QApplication()
     app.setApplicationName(TITLE)
     app.setApplicationVersion(VERSION)
-    QFontDatabase.addApplicationFont("fonts/Inter-Medium.ttf")
-    QFontDatabase.addApplicationFont("fonts/Inter-Bold.ttf")
-    app.setPalette(create_palette())
+
+    setup_fonts()
+    app.setPalette(setup_palette())
     app.setWindowIcon(QIcon("icons/logo.ico"))
-    app.setStyleSheet(
-        "*:focus {outline: none;} "
-        "* {font-family: Inter; font-size: 12px; color: white; border-radius: 5px;}"
-        "QWidget {border: 0px solid black;} "
-        "QLineEdit {height: 30px; padding-left: 10px; padding-right: 10px; background-color: "
-        + f"{SURFACE_COLOR}"
-        + "}"
-        "QLineEdit:focus {border: 1px solid " + f"{BACKGROUND_COLOR2}" + "}"
-        "QListWidget::item { height: 30px; background-color: "
-        + f"{SURFACE_COLOR}"
-        + "; margin: 1px;}"
-        "QListWidget::item:hover { cursor: pointer; background-color: "
-        + f"{BACKGROUND_COLOR2}"
-        + ";}"
-        "QListWidget::item:selected { background-color: "
-        + f"{BACKGROUND_COLOR3}"
-        + "; color: #ffffff;}"
-        "QListWidget::item:focus {outline: none;}"
-        "QToolBar {border: none; margin: 0px; padding: 0px; spacing: 0px;}"
-        "QToolButton {background-color: "
-        + f"{BACKGROUND_COLOR}"
-        + "; border: none; color: #ffffff; padding: 10px; margin-bottom: 5px; margin-left:5px;}"
-        "QToolButton:hover {background-color:" + f"{HOVER_COLOR}" + ";}"
-        "QToolButton:checked {background-color: " + f"{PRIMARY_COLOR}" + ";}"
-        "QToolButton:pressed {background-color: " + f"{PRIMARY_COLOR}" + ";}"
-        "QPushButton {background-color: "
-        + f"{BUTTON_BACKGROUND}"
-        + "; border: none; color: #ffffff; padding: 10px;}"
-        "QPushButton:hover {background-color: " + f"{BUTTON_HOVER}" + ";}"
-        "QPushButton:disabled {background-color: "
-        + f"{SURFACE_COLOR}; color: #888"
-        + "}"
-        "QScrollBar:vertical {border: none; background: "
-        + f"{SURFACE_COLOR};"
-        + " width: 18px; margin: 0px 0px 0px 0px;border-radius: 0px;}"
-        "QScrollBar::handle:vertical {background: "
-        + f"{BACKGROUND_COLOR2}"
-        + "; min-height: 0px;}"
-        "QScrollBar::add-line:vertical {background: "
-        + f"{BACKGROUND_COLOR}"
-        + "; height: 0px; subcontrol-position: bottom;}"
-        "QScrollBar::sub-line:vertical {background: "
-        + f"{BACKGROUND_COLOR}"
-        + "; height: 0px; subcontrol-position: top;}"
-        "QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {background: none;}"
-        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {background: none;}"
-        "QScrollBar:horizontal {border: none; background: "
-        + f"{SURFACE_COLOR};"
-        + " height: 18px; margin: 0px 0px 0px 0px;border-radius: 0px;}"
-        "QScrollBar::handle:horizontal {background: "
-        + f"{BACKGROUND_COLOR2}"
-        + "; min-width: 0px;}"
-        "QScrollBar::add-line:horizontal {background: "
-        + f"{BACKGROUND_COLOR}"
-        + "; width: 0px; subcontrol-position: right;}"
-        "QScrollBar::sub-line:horizontal {background: "
-        + f"{BACKGROUND_COLOR}"
-        + "; width: 0px; subcontrol-position: left;}"
-        "QScrollBar::left-arrow:horizontal, QScrollBar::right-arrow:horizontal {background: none;}"
-        "QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {background: none;}"
-        "QComboBox {border: 1px solid " + f"{SURFACE_COLOR}" + "; padding: 5px;}"
-        "QComboBox:hover {background-color: " + f"{HOVER_COLOR}" + ";}"
-        "QComboBox QAbstractItemView {background-color: "
-        + f"{BACKGROUND_COLOR}"
-        + "; padding: 10px;}"
-        "QComboBox QAbstractItemView::item {height: 30px;}"
-        "QComboBox QAbstractItemView::item:selected {background-color: "
-        + f"{PRIMARY_COLOR}"
-        + "; color: #ffffff;}"
-        "QComboBox::drop-down {border: none;}"
-        "QComboBox::down-arrow {image: url(icons/arrow_down.png); width: 15px; height: 15px;}"
-        "QTableWidget::item {background-color: " + f"{SURFACE_COLOR}" + ";}"
-        "QTableWidget::item:selected {background-color: "
-        + f"{PRIMARY_COLOR}"
-        + "; color: #ffffff;}"
-        "QTableWidget::item:focus {outline: none;}"
-        "QHeaderView::section {background-color: "
-        + f"{BACKGROUND_COLOR}"
-        + "; color: #ffffff; border: none; padding: 5px;}"
-        "QHeaderView::section:checked {background-color: "
-        + f"{BACKGROUND_COLOR2}"
-        + ";}"
-        "QHeaderView::section:pressed {background-color: "
-        + f"{BACKGROUND_COLOR2}"
-        + ";}"
-        "QHeaderView::section:checked:disabled {background-color: "
-        + f"{BACKGROUND_COLOR2}"
-        + ";}"
-        "QTableCornerButton::section { background-color: " + f"{SURFACE_COLOR}" + ";}"
-        "QMenu {background-color: " + f"{BACKGROUND_COLOR}" + ";}"
-        "QMenu::item {background-color: "
-        + f"{BACKGROUND_COLOR}"
-        + "; color: #ffffff; padding: 5px;}"
-        "QMenu::item:selected {background-color: "
-        + f"{PRIMARY_COLOR}"
-        + "; color: #ffffff;}"
-        "QMenu::item:pressed {background-color: "
-        + f"{PRIMARY_COLOR}"
-        + "; color: #ffffff;}"
-        "QMenu::item:disabled {background-color: "
-        + f"{BACKGROUND_COLOR}"
-        + "; color: #ffffff;}"
-        "QToolTip {background-color: "
-        + f"{BACKGROUND_COLOR}"
-        + "; color: #ffffff; border: none; padding: 5px;}"
-        "QProgressBar {border: 1px solid "
-        + f"{SURFACE_COLOR}"
-        + ";  color: #ffffff; text-align: center;}"
-        "QProgressBar::chunk {background-color: " + f"{PRIMARY_COLOR}" + ";}"
-        "QMenuBar {background-color: " + f"{BACKGROUND_COLOR}" + ";}"
-        "QMenuBar::item {background-color: " + f"{BACKGROUND_COLOR}" + ";}"
-        "QMenuBar::item:selected {background-color: " + f"{PRIMARY_COLOR}" + ";}"
-        "QMenuBar::item:pressed {background-color: " + f"{PRIMARY_COLOR}" + ";}"
-    )
+    app.setStyleSheet(STYLESHEET)
+
     window = MyApp()
     window.show()
     sys.exit(app.exec())

@@ -1,6 +1,6 @@
 import os
 
-from PySide6.QtCore import QSize, Qt, QEvent, QModelIndex
+from PySide6.QtCore import QSize, Qt, QEvent, QModelIndex, QItemSelectionModel
 from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QVBoxLayout,
@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QMenu,
     QWidgetAction,
-    QListWidgetItem,
+    QListWidgetItem, QMenuBar,
 )
 
 from constants import *
@@ -31,9 +31,40 @@ class AppGui(QVBoxLayout):
         super(AppGui, self).__init__(parent)
         self.main_window = parent
         self.anno_project = anno_project
-        print(anno_project.class_names)
 
         self.setContentsMargins(0, 0, 0, 0)
+
+        # Menu bar
+        self.menu_bar = QMenuBar()
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.new_project_action = QAction("New Project", self)
+        self.new_project_action.triggered.connect(self.main_window.new_project)
+        self.file_menu.addAction(self.new_project_action)
+        self.load_project_action = QAction("Load Project", self)
+        self.load_project_action.triggered.connect(self.main_window.load_project)
+        self.file_menu.addAction(self.load_project_action)
+        self.save_project_action = QAction("Save Project", self)
+        self.save_project_action.triggered.connect(self.save_project)
+        self.file_menu.addAction(self.save_project_action)
+        self.file_menu.addSeparator()
+        self.exit_action = QAction("Exit", self)
+        self.exit_action.triggered.connect(self.main_window.close)
+        self.file_menu.addAction(self.exit_action)
+
+        self.project_menu = self.menu_bar.addMenu("Project")
+        self.count_all_labels_action = QAction("Count all labels", self)
+        self.count_all_labels_action.triggered.connect(self.count_all_labels)
+        self.project_menu.addAction(self.count_all_labels_action)
+        self.convert_project_action = QAction("Convert project", self)
+        self.convert_project_action.triggered.connect(self.convert_project)
+        self.project_menu.addAction(self.convert_project_action)
+
+        self.help_menu = self.menu_bar.addMenu("Help")
+        self.about_action = QAction("About", self)
+        self.about_action.triggered.connect(self.main_window.show_about_dialog)
+        self.help_menu.addAction(self.about_action)
+
+        self.setMenuBar(self.menu_bar)
 
         # Top bar with app name and combobox with annotation types
         self.top_bar = QWidget()
@@ -97,8 +128,8 @@ class AppGui(QVBoxLayout):
         self.polygon_button.triggered.connect(self.set_polygon_selection)
         self.polygon_button.setCheckable(True)
         self.polygon_button.setShortcut("P")
-        self.polygon_button.setEnabled(False)
-        self.polygon_button.setVisible(False)
+        if self.anno_project.dataset_type == "YOLO":
+            self.polygon_button.setVisible(False)
 
         self.previous_button = QAction(
             QIcon("icons/previous.png"), "Previous (Arrow Left)", self
@@ -201,15 +232,6 @@ class AppGui(QVBoxLayout):
             menu = QMenu()
 
             if item is not None:
-                title = QWidgetAction(menu)
-                title.setDisabled(True)
-                title_label = QLabel(item.text())
-                title_label.setStyleSheet(
-                    "font-size: 13px; padding: 5px;"
-                    f"border-bottom: 1px solid {BACKGROUND_COLOR2};"
-                )
-                title.setDefaultWidget(title_label)
-                menu.addAction(title)
                 menu.addAction("Zoom to")
 
                 selected_menu = menu.exec_(event.globalPos())
@@ -224,15 +246,6 @@ class AppGui(QVBoxLayout):
             menu = QMenu()
 
             if item is not None:
-                title = QWidgetAction(menu)
-                title.setDisabled(True)
-                title_label = QLabel(item.text())
-                title_label.setStyleSheet(
-                    "font-size: 13px; padding: 5px;"
-                    f"border-bottom: 1px solid {BACKGROUND_COLOR2};"
-                )
-                title.setDefaultWidget(title_label)
-                menu.addAction(title)
                 menu.addAction("Load image")
                 menu.addAction("Count labels")
                 selected_menu = menu.exec_(event.globalPos())
@@ -249,6 +262,9 @@ class AppGui(QVBoxLayout):
 
             return True
         return super(QVBoxLayout, self).eventFilter(source, event)
+
+    def convert_project(self):
+        pass
 
     def update_image_list(self):
         """
@@ -309,7 +325,9 @@ class AppGui(QVBoxLayout):
         if not drawing:
             self.box_size_label.setText("")
         else:
-            self.box_size_label.setText(f"{box_size[0], box_size[1]}")
+            self.box_size_label.setText(
+                f"{round(box_size[0], 2), round(box_size[1], 2)}"
+            )
 
     def set_label_name(self, label_name):
         self.image_view.label_name = label_name
@@ -367,15 +385,13 @@ class AppGui(QVBoxLayout):
         self.image_view.delete_rectangles(labels_to_delete)
 
     def update_selection(self):
-        for rectangle in self.anno_project.current_image.labels:
-            if rectangle.isSelected():
-                self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[
-                    0
-                ].setSelected(True)
-            else:
-                self.labels_list.findItems(rectangle.label_name, Qt.MatchExactly)[
-                    0
-                ].setSelected(False)
+        for item in self.image_view.current_labels:
+            for index in range(self.labels_list.count()):
+                list_item = self.labels_list.item(index)
+                widget = self.labels_list.itemWidget(list_item)
+                if isinstance(widget, TwoLineListItem):
+                    if widget and widget.title == item.label_name:
+                        self.labels_list.setCurrentItem(list_item, QItemSelectionModel.Select)
 
     def select_labels_from_list(self):
         selected_items = self.labels_list.selectedItems()
@@ -387,19 +403,19 @@ class AppGui(QVBoxLayout):
         self.select_button.setChecked(True)
         self.polygon_button.setChecked(False)
         self.rectangle_button.setChecked(False)
-        self.image_view.set_select_mode()
+        self.image_view.set_mode("select")
 
     def set_rect_selection(self):
         self.select_button.setChecked(False)
         self.polygon_button.setChecked(False)
         self.rectangle_button.setChecked(True)
-        self.image_view.set_rect_selection()
+        self.image_view.set_mode("rect_selection")
 
     def set_polygon_selection(self):
         self.select_button.setChecked(False)
         self.rectangle_button.setChecked(False)
         self.polygon_button.setChecked(True)
-        self.image_view.set_polygon_selection()
+        self.image_view.set_mode("polygon_selection")
 
     def previous_image(self):
         current_image = self.anno_project.current_image

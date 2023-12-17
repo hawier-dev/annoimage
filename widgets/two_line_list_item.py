@@ -5,6 +5,8 @@ class TwoLineListItem(QWidget):
     def __init__(self, title, subtitle):
         super().__init__()
 
+        self.title = title
+        self.subtitle = subtitle
         layout = QVBoxLayout()
         layout.setSpacing(1)
         self.setLayout(layout)

@@ -54,14 +54,14 @@ class RectangleItem(QGraphicsRectItem):
 
     @classmethod
     def from_dict(cls, data, parent):
-        ri = cls(
+        rectangle = cls(
             parent,
             QPointF(*data["start_point"]),
             QPointF(*data["end_point"]),
             data["label_name"],
             data["label_name_id"],
         )
-        return ri
+        return rectangle
 
     @staticmethod
     def calculate_rectangle(start_point, end_point):
