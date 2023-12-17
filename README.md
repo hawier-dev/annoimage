@@ -17,11 +17,11 @@ AnnoImage is an intuitive and efficient image annotation tool designed for objec
 
 ## Getting Started
 
-- Installation: [Installation](./Installation.md)
+- [Installation Guide](./installation_guide.md)
 
-- Creating Your First Project: [First project](./first_project.md)
+- [Creating your First Project Guide](./first_project_guide.md)
 
-- Basic Annotation Guide: [Annotation guide](annotation_guide.md)
+- [Basic Annotation Guide](annotation_guide.md)
 
 ## License
 
