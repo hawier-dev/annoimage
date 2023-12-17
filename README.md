@@ -11,9 +11,9 @@
 
 - **Project-Based Workflow**: Organize your annotation work within structured projects for better management.
 
-- *(Work in progress)* **Export Annotations**: Export your annotations in multiple formats for compatibility with various ML models. 
+- **Export Annotations** *(Work in progress)*: Export your annotations in multiple formats for compatibility with various ML models. 
 
-- *(Coming soon)* **AI-Assisted Annotation**: Leverage AI tools to accelerate the annotation process.
+- **AI-Assisted Annotation** *(Coming soon)*: Leverage AI tools to accelerate the annotation process.
 
 ## Getting Started
 
