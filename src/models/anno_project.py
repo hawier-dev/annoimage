@@ -1,7 +1,7 @@
 import json
 from PySide6.QtWidgets import QFileDialog
 
-from models.label_image import LabelImage
+from src.models.label_image import LabelImage
 
 
 class AnnoProject:

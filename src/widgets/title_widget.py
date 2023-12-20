@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt
 
-from constants import LOGO_SIZE, TITLE
+from src.utils.constants import LOGO_SIZE, TITLE, ICON_PATH
 
 
 class TitleWidget(QWidget):
@@ -15,7 +15,7 @@ class TitleWidget(QWidget):
 
         self.app_logo = QLabel()
         self.app_logo.setPixmap(
-            QPixmap("icons/logo.png").scaled(
+            QPixmap(ICON_PATH).scaled(
                 LOGO_SIZE * scaling,
                 LOGO_SIZE * scaling,
                 Qt.KeepAspectRatio,

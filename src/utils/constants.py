@@ -4,6 +4,7 @@ AUTHOR = "hawier-dev"
 FULL_AUTHOR_NAME = "Mikołaj Badyl (hawier-dev)"
 VERSION = "v0.1"
 GITHUB_REPO_URL = "https://github.com/hawier-dev/annoimage"
+ICON_PATH = "icons/logo.png"
 
 BACKGROUND_COLOR = "#111111"
 SURFACE_COLOR = "#222222"

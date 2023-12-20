@@ -1,10 +1,5 @@
-import copy
-import datetime
-import json
-import os
-
 from PIL import Image
-from PySide6.QtCore import QRectF, QPointF, Qt, Signal, QEvent, QTimer
+from PySide6.QtCore import QPointF, Qt, Signal, QEvent, QTimer
 from PySide6.QtWidgets import (
     QGraphicsView,
     QGraphicsScene,
@@ -12,22 +7,19 @@ from PySide6.QtWidgets import (
     QGraphicsRectItem,
     QLabel,
     QDialog,
-    QGraphicsItem,
 )
 from PySide6.QtGui import (
-    QDragEnterEvent,
-    QDropEvent,
     QPainter,
     QMouseEvent,
     QPolygonF,
 )
 
-from constants import SURFACE_COLOR, TITLE, VERSION
-from models.label_image import LabelImage
-from widgets.add_label_dialog import AddLabelDialog
-from widgets.polygon_item import PolygonItem
-from widgets.rectangle_item import RectangleItem
-from models.image_loader import ImageLoader
+from src.utils.constants import SURFACE_COLOR
+from src.models.label_image import LabelImage
+from src.widgets.dialogs.add_label_dialog import AddLabelDialog
+from src.widgets.labels.polygon_item import PolygonItem
+from src.widgets.labels.rectangle_item import RectangleItem
+from src.models.image_loader import ImageLoader
 
 Image.MAX_IMAGE_PIXELS = 933120000
 

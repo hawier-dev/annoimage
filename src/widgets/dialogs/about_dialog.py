@@ -1,8 +1,8 @@
-from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QLabel, QDialog, QVBoxLayout, QPushButton, QTextBrowser
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QLabel, QDialog, QVBoxLayout, QPushButton
 
-from constants import TITLE, AUTHOR, VERSION, DESCRIPTION, GITHUB_REPO_URL, FULL_AUTHOR_NAME
+from src.utils.constants import TITLE, VERSION, DESCRIPTION, GITHUB_REPO_URL, FULL_AUTHOR_NAME, ICON_PATH
 
 
 class AboutDialog(QDialog):
@@ -17,7 +17,7 @@ class AboutDialog(QDialog):
         logo_label = QLabel()
         logo_label.setAlignment(Qt.AlignCenter)
         logo_label.setPixmap(
-            QPixmap("icons/logo.png").scaled(
+            QPixmap(ICON_PATH).scaled(
                 64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
         )

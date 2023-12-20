@@ -12,18 +12,17 @@ from PySide6.QtWidgets import (
     QPushButton,
     QComboBox,
     QMenu,
-    QWidgetAction,
-    QListWidgetItem, QMenuBar,
+    QMenuBar,
 )
 
-from constants import *
-from models.anno_project import AnnoProject
-from models.label_image import LabelImage
-from widgets.image_view import ImageView
-from widgets.labels_manage_dialog import LabelsManageDialog
-from widgets.list_widget import ListWidget
-from widgets.rectangle_item import RectangleItem
-from widgets.two_line_list_item import TwoLineListItem
+from src.utils.constants import *
+from src.models.anno_project import AnnoProject
+from src.models.label_image import LabelImage
+from src.widgets.image_view import ImageView
+from src.widgets.dialogs.labels_manage_dialog import LabelsManageDialog
+from src.widgets.list_widget import ListWidget
+from src.widgets.labels.rectangle_item import RectangleItem
+from src.widgets.two_line_list_item import TwoLineListItem
 
 
 class AppGui(QVBoxLayout):
@@ -74,7 +73,7 @@ class AppGui(QVBoxLayout):
 
         self.app_logo = QLabel()
         self.app_logo.setPixmap(
-            QPixmap("icons/logo.png").scaled(
+            QPixmap(ICON_PATH).scaled(
                 LOGO_SIZE, LOGO_SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
         )

@@ -1,8 +1,7 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QLineEdit, QVBoxLayout, QHBoxLayout, QPushButton
+from PySide6.QtWidgets import QLineEdit, QVBoxLayout, QHBoxLayout, QPushButton
 
-from widgets.centered_dialog import CenteredDialog
+from src.widgets.dialogs.centered_dialog import CenteredDialog
 
 
 class AddLabelDialog(CenteredDialog):

@@ -15,12 +15,12 @@ from PySide6.QtWidgets import (
     QDialog,
 )
 
-from constants import DATASET_TYPES
-from models.anno_project import AnnoProject
-from models.label_image import LabelImage
-from utils.list_widget_delegate import ListWidgetDelegate
-from widgets.add_label_dialog import AddLabelDialog
-from widgets.title_widget import TitleWidget
+from src.utils.constants import DATASET_TYPES
+from src.models.anno_project import AnnoProject
+from src.models.label_image import LabelImage
+from src.utils.list_widget_delegate import ListWidgetDelegate
+from src.widgets.dialogs.add_label_dialog import AddLabelDialog
+from src.widgets.title_widget import TitleWidget
 
 
 class NewProjectWidget(QWidget):

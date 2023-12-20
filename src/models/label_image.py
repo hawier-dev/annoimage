@@ -1,7 +1,5 @@
 import os
 
-from widgets.rectangle_item import RectangleItem
-
 
 class LabelImage:
     def __init__(self, image_id: int, path: str, labels: list):

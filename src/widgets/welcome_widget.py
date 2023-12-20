@@ -2,17 +2,14 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QHBoxLayout,
     QListWidget,
     QPushButton,
     QLabel,
-    QListWidgetItem,
 )
-from PySide6.QtGui import QPixmap
 
-from constants import *
-from widgets.title_widget import TitleWidget
-from widgets.two_line_list_item import TwoLineListItem
+from src.utils.constants import *
+from src.widgets.title_widget import TitleWidget
+from src.widgets.two_line_list_item import TwoLineListItem
 
 
 class WelcomeWidget(QWidget):

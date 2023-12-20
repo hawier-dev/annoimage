@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QDialog, QPushButton, QHBoxLayout
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QPushButton, QHBoxLayout
 
-from widgets.centered_dialog import CenteredDialog
+from src.widgets.dialogs.centered_dialog import CenteredDialog
 
 
 class YesOrNoDialog(CenteredDialog):

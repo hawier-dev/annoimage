@@ -6,13 +6,13 @@ from PySide6.QtCore import Qt, QModelIndex
 from PySide6.QtGui import QPalette, QColor, QFontDatabase, QIcon
 from PySide6.QtWidgets import QMainWindow, QWidget, QApplication, QFileDialog, QDialog
 from appdirs import user_data_dir
-from app_gui import AppGui
-from constants import *
-from models.anno_project import AnnoProject
-from widgets.about_dialog import AboutDialog
-from widgets.new_project_widget import NewProjectWidget
-from widgets.welcome_widget import WelcomeWidget
-from widgets.yes_or_no_dialog import YesOrNoDialog
+from src.widgets.app_gui import AppGui
+from src.utils.constants import *
+from src.models.anno_project import AnnoProject
+from src.widgets.dialogs.about_dialog import AboutDialog
+from src.widgets.new_project_widget import NewProjectWidget
+from src.widgets.welcome_widget import WelcomeWidget
+from src.widgets.dialogs.yes_or_no_dialog import YesOrNoDialog
 
 
 class MyApp(QMainWindow):
@@ -160,7 +160,7 @@ def main():
 
     setup_fonts()
     app.setPalette(setup_palette())
-    app.setWindowIcon(QIcon("icons/logo.ico"))
+    app.setWindowIcon(QIcon(ICON_PATH))
     app.setStyleSheet(STYLESHEET)
 
     window = MyApp()

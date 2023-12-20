@@ -1,16 +1,14 @@
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QListWidget,
     QVBoxLayout,
     QLineEdit,
     QPushButton,
-    QDialog,
 )
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt
 
-from widgets.centered_dialog import CenteredDialog
-from utils.list_widget_delegate import ListWidgetDelegate
+from src.widgets.dialogs.centered_dialog import CenteredDialog
+from src.utils.list_widget_delegate import ListWidgetDelegate
 
 
 class LabelsManageDialog(CenteredDialog):
