@@ -1,5 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem
 
+from src.utils.constants import SELECTED_COLOR
+
 
 class TwoLineListItem(QWidget):
     def __init__(self, title, subtitle):
@@ -11,8 +13,8 @@ class TwoLineListItem(QWidget):
         layout.setSpacing(1)
         self.setLayout(layout)
 
-        title_label = QLabel(title)
-        title_label.setStyleSheet(
+        self.title_label = QLabel(title)
+        self.title_label.setStyleSheet(
             "font-weight: bold; font-size: 12px; background-color: transparent;"
         )
 
@@ -21,7 +23,7 @@ class TwoLineListItem(QWidget):
             "color: gray; font-size: 11px; background-color: transparent;"
         )
 
-        layout.addWidget(title_label)
+        layout.addWidget(self.title_label)
         layout.addWidget(subtitle_label)
 
     def add_to_list(self, list_widget):
@@ -29,3 +31,15 @@ class TwoLineListItem(QWidget):
         item.setSizeHint(self.sizeHint())
         list_widget.addItem(item)
         list_widget.setItemWidget(item, self)
+
+    def set_selected(self, selected):
+        if selected:
+            self.title_label.setStyleSheet(
+                f"color: {SELECTED_COLOR};"
+                f"font-weight: bold; font-size: 12px; background-color: transparent;"
+            )
+        else:
+            self.title_label.setStyleSheet(
+                f"color: white;"
+                "font-weight: bold; font-size: 12px; background-color: transparent;"
+            )

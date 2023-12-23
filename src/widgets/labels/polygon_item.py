@@ -2,6 +2,8 @@ from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QPen, QBrush, QColor, QPolygonF
 from PySide6.QtWidgets import QGraphicsPolygonItem
 
+from src.widgets.labels.rectangle_item import RectangleItem
+
 
 class PolygonItem(QGraphicsPolygonItem):
     def __init__(self, parent, polygon, label_name, label_name_id):
@@ -20,6 +22,31 @@ class PolygonItem(QGraphicsPolygonItem):
     def set_default_color(self):
         self.setPen(self.default_pen)
         self.setBrush(self.default_brush)
+
+    def to_coco_annotation(self):
+        segmentation = [[point.x(), point.y()] for point in self.polygon()]
+
+        bbox = self.get_bounding_box()
+
+        return {
+            "segmentation": [segmentation],
+            "bbox": [bbox.x(), bbox.y(), bbox.width(), bbox.height()],
+            "area": bbox.width() * bbox.height(),
+            "category_id": self.label_name_id,
+            "iscrowd": 0
+        }
+
+    def get_bounding_box(self):
+        return self.polygon().boundingRect()
+
+    def to_rectangle_item(self):
+        """
+          Converts current object to a RectangleItem.
+          Returns:
+              RectangleItem: The converted RectangleItem object.
+        """
+        bbox = self.get_bounding_box()
+        return RectangleItem(self.image_view, bbox.topLeft(), bbox.bottomRight(), self.label_name, self.label_name_id)
 
     def to_dict(self):
         return {

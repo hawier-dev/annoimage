@@ -15,12 +15,12 @@ from PySide6.QtWidgets import (
     QDialog,
 )
 
-from src.utils.constants import DATASET_TYPES
 from src.models.anno_project import AnnoProject
 from src.models.label_image import LabelImage
+from src.utils.constants import BIG_LOGO_PATH
 from src.utils.list_widget_delegate import ListWidgetDelegate
 from src.widgets.dialogs.add_label_dialog import AddLabelDialog
-from src.widgets.title_widget import TitleWidget
+from src.widgets.logo_label import LogoLabel
 
 
 class NewProjectWidget(QWidget):
@@ -32,7 +32,7 @@ class NewProjectWidget(QWidget):
         self.parent = parent
 
         self.main_layout = QVBoxLayout()
-        self.title_widget = TitleWidget(scaling=1.1)
+        self.logo_label = LogoLabel(BIG_LOGO_PATH, 150)
 
         self.project_layout = QHBoxLayout()
 
@@ -49,17 +49,8 @@ class NewProjectWidget(QWidget):
         self.project_name_layout.addWidget(self.project_name_edit)
 
         # Vertical layout for the data set type
-        self.dataset_type_layout = QVBoxLayout()
-
-        self.dataset_type_label = QLabel("Dataset Type")
-        self.dataset_type_combo = QComboBox()
-        self.dataset_type_combo.addItems(DATASET_TYPES)
-
-        self.dataset_type_layout.addWidget(self.dataset_type_label)
-        self.dataset_type_layout.addWidget(self.dataset_type_combo)
 
         self.project_layout.addLayout(self.project_name_layout)
-        self.project_layout.addLayout(self.dataset_type_layout)
 
         # Images and classes layout
         self.lists_layout = QHBoxLayout()
@@ -116,7 +107,7 @@ class NewProjectWidget(QWidget):
         self.button_layout.addStretch()
         self.button_layout.addWidget(self.create_button)
 
-        self.main_layout.addWidget(self.title_widget)
+        self.main_layout.addWidget(self.logo_label)
         self.main_layout.addLayout(self.project_layout)
         self.main_layout.addSpacing(5)
         self.main_layout.addLayout(self.lists_layout)
@@ -170,7 +161,6 @@ class NewProjectWidget(QWidget):
 
     def create_project(self):
         project_name = self.project_name_edit.text()
-        dataset_type = self.dataset_type_combo.currentText()
         images_paths = [
             self.images_list.item(i).text() for i in range(self.images_list.count())
         ]
@@ -178,16 +168,11 @@ class NewProjectWidget(QWidget):
             self.classes_list.item(i).text() for i in range(self.classes_list.count())
         ]
 
-        project = AnnoProject(
+        project = AnnoProject.create(
             main_window=self.parent,
             name=project_name,
-            dataset_type=dataset_type,
-            images=[
-                LabelImage(image_id=i, labels=[], path=path)
-                for i, path in enumerate(images_paths)
-            ],
+            images=images_paths,
             class_names=class_names,
             date_created=datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
         )
-        project.save_project()
         self.project_created.emit(project)

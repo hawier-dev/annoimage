@@ -1,7 +1,7 @@
-import os
+﻿import os
 
 from PySide6.QtCore import QSize, Qt, QEvent, QModelIndex, QItemSelectionModel
-from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -15,13 +15,15 @@ from PySide6.QtWidgets import (
     QMenuBar,
 )
 
-from src.utils.constants import *
 from src.models.anno_project import AnnoProject
 from src.models.label_image import LabelImage
-from src.widgets.image_view import ImageView
+from src.utils.constants import *
+from src.widgets.dialogs.convert_dialog import ExportDialog
 from src.widgets.dialogs.labels_manage_dialog import LabelsManageDialog
-from src.widgets.list_widget import ListWidget
+from src.widgets.image_view import ImageView
 from src.widgets.labels.rectangle_item import RectangleItem
+from src.widgets.list_widget import ListWidget
+from src.widgets.logo_label import LogoLabel
 from src.widgets.two_line_list_item import TwoLineListItem
 
 
@@ -31,7 +33,7 @@ class AppGui(QVBoxLayout):
         self.main_window = parent
         self.anno_project = anno_project
 
-        self.setContentsMargins(0, 0, 0, 0)
+        self.setContentsMargins(0, 0, 5, 0)
 
         # Menu bar
         self.menu_bar = QMenuBar()
@@ -54,9 +56,9 @@ class AppGui(QVBoxLayout):
         self.count_all_labels_action = QAction("Count all labels", self)
         self.count_all_labels_action.triggered.connect(self.count_all_labels)
         self.project_menu.addAction(self.count_all_labels_action)
-        self.convert_project_action = QAction("Convert project", self)
-        self.convert_project_action.triggered.connect(self.convert_project)
-        self.project_menu.addAction(self.convert_project_action)
+        self.export_project_action = QAction("Export project", self)
+        self.export_project_action.triggered.connect(self.export_project)
+        self.project_menu.addAction(self.export_project_action)
 
         self.help_menu = self.menu_bar.addMenu("Help")
         self.about_action = QAction("About", self)
@@ -71,26 +73,15 @@ class AppGui(QVBoxLayout):
         self.top_bar_layout = QHBoxLayout()
         self.top_bar_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.app_logo = QLabel()
-        self.app_logo.setPixmap(
-            QPixmap(ICON_PATH).scaled(
-                LOGO_SIZE, LOGO_SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
-        )
+        self.app_logo = LogoLabel(ICON_PATH, 24)
 
-        self.app_name = QLabel(TITLE)
+        self.app_name = QLabel(self.anno_project.name)
         self.app_name.setStyleSheet("font-size: 15px;")
-
-        self.label_name_selector = QComboBox()
-        self.label_name_selector.addItems(self.anno_project.class_names)
-        self.label_name_selector.setFixedWidth(100)
-        self.label_name_selector.currentTextChanged.connect(self.set_label_name)
 
         self.top_bar_layout.addSpacing(8)
         self.top_bar_layout.addWidget(self.app_logo)
         self.top_bar_layout.addWidget(self.app_name)
         self.top_bar_layout.addStretch()
-        self.top_bar_layout.addWidget(self.label_name_selector)
         self.top_bar_layout.addSpacing(8)
 
         self.top_bar.setLayout(self.top_bar_layout)
@@ -122,13 +113,11 @@ class AppGui(QVBoxLayout):
 
         # Polygonal selection button
         self.polygon_button = QAction(
-            QIcon("icons/polygon_selection.png"), "Polygon (P) (ONLY IN COCO)", self
+            QIcon("icons/polygon_selection.png"), "Polygon (P)", self
         )
         self.polygon_button.triggered.connect(self.set_polygon_selection)
         self.polygon_button.setCheckable(True)
         self.polygon_button.setShortcut("P")
-        if self.anno_project.dataset_type == "YOLO":
-            self.polygon_button.setVisible(False)
 
         self.previous_button = QAction(
             QIcon("icons/previous.png"), "Previous (Arrow Left)", self
@@ -164,14 +153,6 @@ class AppGui(QVBoxLayout):
 
         self.right_panel_layout = QVBoxLayout()
 
-        self.images_label = QLabel("Images")
-        self.images_list = ListWidget()
-        self.images_list.setSelectionMode(QListWidget.ExtendedSelection)
-        self.images_list.setMaximumWidth(RIGHT_MAXW)
-        self.images_list.doubleClicked.connect(self.load_image)
-        self.images_list.installEventFilter(self)
-        self.images_list.delete_pressed.connect(self.delete_selected_photos)
-
         self.labels_label = QLabel("Labels")
         self.labels_list = ListWidget()
         self.labels_list.setSelectionMode(QListWidget.SingleSelection)
@@ -180,16 +161,30 @@ class AppGui(QVBoxLayout):
         self.labels_list.installEventFilter(self)
         self.labels_list.delete_pressed.connect(self.delete_selected_labels)
 
+        self.label_name_selector = QComboBox()
+        self.label_name_selector.addItems(self.anno_project.class_names)
+        self.label_name_selector.currentTextChanged.connect(self.set_label_name)
+        self.top_bar_layout.addWidget(self.label_name_selector)
+
         self.manage_labels_button = QPushButton("Manage labels")
         self.manage_labels_button.setToolTip("Add or delete label names")
         self.manage_labels_button.clicked.connect(self.manage_labels)
 
-        self.right_panel_layout.addWidget(self.images_label)
-        self.right_panel_layout.addWidget(self.images_list)
-        self.right_panel_layout.addSpacing(10)
+        self.images_label = QLabel("Images")
+        self.images_list = ListWidget()
+        self.images_list.setSelectionMode(QListWidget.ExtendedSelection)
+        self.images_list.setMaximumWidth(RIGHT_MAXW)
+        self.images_list.doubleClicked.connect(self.load_image)
+        self.images_list.installEventFilter(self)
+        self.images_list.delete_pressed.connect(self.delete_selected_photos)
+
         self.right_panel_layout.addWidget(self.labels_label)
         self.right_panel_layout.addWidget(self.labels_list)
+        self.right_panel_layout.addWidget(self.label_name_selector)
         self.right_panel_layout.addWidget(self.manage_labels_button)
+        self.right_panel_layout.addSpacing(10)
+        self.right_panel_layout.addWidget(self.images_label)
+        self.right_panel_layout.addWidget(self.images_list)
 
         self.main_layout.addWidget(self.left_toolbar)
         self.main_layout.addLayout(self.center_layout)
@@ -262,8 +257,12 @@ class AppGui(QVBoxLayout):
             return True
         return super(QVBoxLayout, self).eventFilter(source, event)
 
-    def convert_project(self):
-        pass
+    def export_project(self):
+        """
+        Exports project
+        """
+        export_dialog = ExportDialog(self.anno_project)
+        export_dialog.exec()
 
     def update_image_list(self):
         """
@@ -279,15 +278,26 @@ class AppGui(QVBoxLayout):
         Loads image to image viewer
         :type image: LabelImage
         """
+        index = None
         if type(image) is QModelIndex:
-            label_image = self.anno_project.images[image.row()]
+            index = image.row()
+            label_image = self.anno_project.images[index]
             self.anno_project.set_current_image(label_image)
             self.image_view.load_image(label_image)
-            self.images_list.setCurrentRow(image.row())
 
         elif type(image) is LabelImage:
+            index = self.anno_project.images.index(image)
             self.anno_project.set_current_image(image)
             self.image_view.load_image(image)
+
+        for i in range(self.images_list.count()):
+            item = self.images_list.item(i)
+            widget = self.images_list.itemWidget(item)
+            if isinstance(widget, TwoLineListItem):
+                if i == index:
+                    widget.set_selected(True)
+                else:
+                    widget.set_selected(False)
 
     def load_labels(self):
         """
@@ -390,7 +400,9 @@ class AppGui(QVBoxLayout):
                 widget = self.labels_list.itemWidget(list_item)
                 if isinstance(widget, TwoLineListItem):
                     if widget and widget.title == item.label_name:
-                        self.labels_list.setCurrentItem(list_item, QItemSelectionModel.Select)
+                        self.labels_list.setCurrentItem(
+                            list_item, QItemSelectionModel.Select
+                        )
 
     def select_labels_from_list(self):
         selected_items = self.labels_list.selectedItems()

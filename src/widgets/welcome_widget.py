@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.constants import *
-from src.widgets.title_widget import TitleWidget
+from src.widgets.logo_label import LogoLabel
 from src.widgets.two_line_list_item import TwoLineListItem
 
 
@@ -23,8 +23,9 @@ class WelcomeWidget(QWidget):
             last_projects, key=lambda x: x["date_created"], reverse=True
         )
 
-        self.title_widget = TitleWidget()
-        self.main_layout.addWidget(self.title_widget)
+        self.logo_label = LogoLabel(BIG_LOGO_PATH, 200)
+        self.main_layout.addWidget(self.logo_label)
+        self.main_layout.addSpacing(10)
 
         self.buttons_widget = QWidget()
         self.buttons_widget.setContentsMargins(0, 0, 0, 0)
@@ -33,7 +34,7 @@ class WelcomeWidget(QWidget):
             f"background-color: {BUTTON_BACKGROUND};"
             "}"
             "QPushButton:hover {"
-            f"background-color: {BUTTON_HOVER};"
+            f"background-color: {HOVER_COLOR};"
             "}"
         )
         self.buttons_layout = QVBoxLayout()

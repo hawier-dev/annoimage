@@ -80,37 +80,29 @@ class RectangleItem(QGraphicsRectItem):
             self.setPen(self.default_pen)
             self.setBrush(self.default_brush)
 
-    # def create_yolo_label(self):
-    #     x = (self.rect().x() + self.rect().width() / 2) / self.image_width
-    #     y = (self.rect().y() + self.rect().height() / 2) / self.image_height
-    #     width = self.rect().width() / self.image_width
-    #     height = self.rect().height() / self.image_height
-    #
-    #     label_string = f"{self.label_name_id} {x:.6f} {y:.6f} {width:.6f} {height:.6f}"
-    #     return label_string
+    def to_coco_annotation(self):
+        # Logic to convert rectangle to COCO annotation
+        x, y, w, h = (
+            self.rect().x(),
+            self.rect().y(),
+            self.rect().width(),
+            self.rect().height(),
+        )
+        segmentation = [[x, y, x + w, y, x + w, y + h, x, y + h]]
+        return {
+            "segmentation": segmentation,
+            "category_id": self.label_name_id,
+            "bbox": [x, y, w, h],
+            "area": w * h,
+        }
 
-    # def create_coco_label(self):
-    #     json_dict = {
-    #         "category_id": self.label_name_id,
-    #         "segmentation": [
-    #             [
-    #                 self.rect().x(),
-    #                 self.rect().y(),
-    #                 self.rect().x() + self.rect().width(),
-    #                 self.rect().y() + self.rect().height(),
-    #             ]
-    #         ],
-    #         "area": self.rect().width() * self.rect().height(),
-    #         "bbox": [
-    #             self.rect().x(),
-    #             self.rect().y(),
-    #             self.rect().width(),
-    #             self.rect().height(),
-    #         ],
-    #         "iscrowd": 0,
-    #     }
-    #
-    #     return json_dict
+    def to_yolo_label(self, image_width, image_height):
+        # Convert rectangle to YOLO format
+        cx = (self.rect().x() + self.rect().width() / 2) / image_width
+        cy = (self.rect().y() + self.rect().height() / 2) / image_height
+        w = self.rect().width() / image_width
+        h = self.rect().height() / image_height
+        return f"{self.label_name_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}"
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)

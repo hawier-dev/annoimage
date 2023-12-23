@@ -2,7 +2,14 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QLabel, QDialog, QVBoxLayout, QPushButton
 
-from src.utils.constants import TITLE, VERSION, DESCRIPTION, GITHUB_REPO_URL, FULL_AUTHOR_NAME, ICON_PATH
+from src.utils.constants import (
+    TITLE,
+    VERSION,
+    DESCRIPTION,
+    GITHUB_REPO_URL,
+    FULL_AUTHOR_NAME,
+    ICON_PATH,
+)
 
 
 class AboutDialog(QDialog):

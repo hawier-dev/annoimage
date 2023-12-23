@@ -28,7 +28,9 @@ class MyApp(QMainWindow):
 
         self.show_welcome_widget()
 
-    def new_project(self, ):
+    def new_project(
+        self,
+    ):
         new_project_widget = NewProjectWidget(self)
         new_project_widget.back_button.pressed.connect(self.show_welcome_widget)
         new_project_widget.project_created.connect(self.show_app_gui)
@@ -113,7 +115,6 @@ class MyApp(QMainWindow):
         if os.path.exists(settings_file):
             with open(settings_file, "r") as f:
                 settings = json.load(f)
-                print(settings)
         else:
             with open(settings_file, "w") as f:
                 json.dump(settings, f)
