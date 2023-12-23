@@ -1,4 +1,4 @@
-# AnnoImage: The Image Annotation Tool
+!["test"](icons/annoimage_full.png)
 
 **(Work In Progress)**
 
@@ -13,7 +13,7 @@
 
 - **Project-Based Workflow**: Organize your annotation work within structured projects for better management.
 
-- **Export Annotations** *(Work in progress)*: Export your annotations in multiple formats for compatibility with various ML models. 
+- **Export Annotations**: Export your annotations in multiple formats for compatibility with various ML models. 
 
 - **AI-Assisted Annotation** *(Coming soon)*: Leverage AI tools to accelerate the annotation process.
 
