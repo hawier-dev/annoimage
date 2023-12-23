@@ -31,4 +31,4 @@ AnnoImage is released under Apache-2.0 License, see [LICENSE](./LICENSE) for mor
 
 ## Contact
 
-For support, feedback, or inquiries, contact us [here](mailto:mikolajbadyl0@gmail.com).
+For support, feedback, or inquiries, contact me [here](mailto:mikolajbadyl0@gmail.com).
