@@ -136,6 +136,11 @@ class MyApp(QMainWindow):
         about_dialog = AboutDialog(self)
         about_dialog.exec()
 
+    # def resizeEvent(self, event):
+    #     super().resizeEvent(event)
+    #     if self.app_gui:
+    #         self.app_gui.image_view.update_scale()
+
     def closeEvent(self, event):
         self.settings["maximized"] = self.isMaximized()
         self.save_settings()

@@ -1,3 +1,5 @@
+import math
+
 from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QObject
 from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsItem
 from PySide6.QtGui import QPen, QBrush, QColor
@@ -25,16 +27,18 @@ class RectangleItem(QGraphicsRectItem):
         self.resize_handles = []
 
         self.default_pen = QPen(QColor(255, 0, 0))
-        self.default_pen.setStyle(Qt.DashLine)
         self.default_brush = QBrush(QColor(255, 0, 0, 32))
+        self.default_pen.setWidth(0.1)
 
         self.start_point = start_point
         self.end_point = end_point
 
         self.selectable = True
-        self.hovered = False
         self.label_name = label_name
         self.label_name_id = label_name_id
+
+        self.min_handle_size = 0.01
+        self.max_handle_size = 40
 
         self.set_default_color()
         if not self.temporary:
@@ -72,13 +76,25 @@ class RectangleItem(QGraphicsRectItem):
             QPointF(min(x1, x2), min(y1, y2)), QPointF(max(x1, x2), max(y1, y2))
         )
 
+    def calculate_base_handle_size(self):
+        average_dim = (self.parent.image_width + self.parent.image_height) / 2
+        return 0.01 * average_dim
+
+    def update_handle_scale(self, scale_factor):
+        """
+        Adjust the size of the resize handles based on the scale factor.
+        """
+        base_handle_size = self.calculate_base_handle_size()
+        scaled_handle_size = base_handle_size * scale_factor
+
+        scaled_handle_size = max(self.min_handle_size, min(scaled_handle_size, self.max_handle_size))
+
+        for handle in self.resize_handles:
+            handle.set_size(scaled_handle_size)
+
     def set_default_color(self):
-        if self.temporary:
-            self.setPen(QPen(QColor(255, 0, 0)))
-            self.setBrush(QBrush(QColor(255, 0, 0, 32)))
-        else:
-            self.setPen(self.default_pen)
-            self.setBrush(self.default_brush)
+        self.setPen(self.default_pen)
+        self.setBrush(self.default_brush)
 
     def to_coco_annotation(self):
         # Logic to convert rectangle to COCO annotation
@@ -125,11 +141,8 @@ class RectangleItem(QGraphicsRectItem):
         return super().itemChange(change, value)
 
     def set_hover_color(self):
-        hover_pen = QPen(QColor(255, 0, 0))
-        hover_pen.setStyle(Qt.DashLine)
         hover_brush = QBrush(QColor(255, 0, 0, 64))
 
-        self.setPen(hover_pen)
         self.setBrush(hover_brush)
 
     def hoverEnterEvent(self, event):
@@ -145,6 +158,7 @@ class RectangleItem(QGraphicsRectItem):
 
     def resize_stopped(self):
         self.parent.movable_enable()
+        self.parent.update_labels()
 
     def add_resize_handles(self):
         handle_size = 5
@@ -165,14 +179,7 @@ class RectangleItem(QGraphicsRectItem):
     def update_handlers(self):
         for handle in self.resize_handles:
             x_offset, y_offset = handle.data(0)
-            handle_size = min(self.rect().width(), self.rect().height()) * 0.05
 
-            handle.setRect(
-                -handle_size / 2,
-                -handle_size / 2,
-                handle_size,
-                handle_size,
-            )
             handle.setPos(
                 self.rect().x() + x_offset * self.rect().width(),
                 self.rect().y() + y_offset * self.rect().height(),
@@ -190,6 +197,7 @@ class RectangleItem(QGraphicsRectItem):
 
 
 class HandleItem(QGraphicsEllipseItem):
+    resized = Signal()
     def __init__(self, x, y, w, h, parent):
         super().__init__(x, y, w, h, parent)
         self.parent = parent
@@ -205,6 +213,8 @@ class HandleItem(QGraphicsEllipseItem):
 
     def mouseMoveEvent(self, event):
         x_offset, y_offset = self.data(0)
+        image_width = self.parent.parent.image_width
+        image_height = self.parent.parent.image_height
         x, y = (
             event.pos().x() - event.lastPos().x(),
             event.pos().y() - event.lastPos().y(),
@@ -224,15 +234,15 @@ class HandleItem(QGraphicsEllipseItem):
             new_height = self.parent.rect().height() + y
             new_y = self.parent.rect().y()
 
-        x1 = max(0, min(new_x, self.parent.image_width))
-        y1 = max(0, min(new_y, self.parent.image_height))
-        x2 = max(0, min(new_x + new_width, self.parent.image_width))
-        y2 = max(0, min(new_y + new_height, self.parent.image_height))
+        x1 = max(0, min(new_x, image_width))
+        y1 = max(0, min(new_y, image_height))
+        x2 = max(0, min(new_x + new_width, image_width))
+        y2 = max(0, min(new_y + new_height, image_height))
 
         self.parent.start_point = QPointF(x1, y1)
         self.parent.end_point = QPointF(x2, y2)
         self.parent.setRect(
-            self.parent.calculateRectangle(
+            self.parent.calculate_rectangle(
                 self.parent.start_point, self.parent.end_point
             )
         )
@@ -240,6 +250,12 @@ class HandleItem(QGraphicsEllipseItem):
         # self.parent.setRect(new_rect)
         super().mouseMoveEvent(event)
         self.parent.update_handlers()
+
+    def set_size(self, size):
+        """
+        Set the size of the handle.
+        """
+        self.setRect(-size / 2, -size / 2, size, size)
 
     def mouseReleaseEvent(self, event):
         self.parent.resize_stopped()

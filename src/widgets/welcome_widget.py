@@ -18,7 +18,6 @@ class WelcomeWidget(QWidget):
         self.setContentsMargins(100, 20, 100, 20)
         self.main_layout = QVBoxLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
-        # sort by date created
 
         self.logo_label = LogoLabel(BIG_LOGO_PATH, 200)
         self.main_layout.addWidget(self.logo_label)

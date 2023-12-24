@@ -40,7 +40,10 @@ class ImageView(QGraphicsView):
         self.label_id = None
         self.polygon_points = []
         self.polygon_item = None
-
+        self.initial_zoom = 1
+        self.current_zoom = self.initial_zoom
+        self.current_scale = self.initial_zoom
+        self.min_zoom = 1.0
         self.output_path = None
         self.current_labels = []
 
@@ -83,7 +86,18 @@ class ImageView(QGraphicsView):
         zoom_in = event.angleDelta().y() > 0
         zoom_factor = 1.1 if zoom_in else 1 / 1.1
 
+        self.current_scale *= (1 / zoom_factor)
+        self.current_zoom *= zoom_factor
         self.scale(zoom_factor, zoom_factor)
+        self.update_handle_scales(self.current_scale)
+
+    def update_handle_scales(self, scale_factor):
+        """
+        Update the scale of handles for each RectangleItem in the scene.
+        """
+        for item in self.scene().items():
+            if isinstance(item, RectangleItem):
+                item.update_handle_scale(scale_factor)
 
     def load_image(self, label_image: LabelImage):
         """
@@ -127,7 +141,6 @@ class ImageView(QGraphicsView):
         self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
 
         self.on_image_loaded.emit()
-
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
 
@@ -149,6 +162,7 @@ class ImageView(QGraphicsView):
 
         self.set_mode(self.current_mode)
         self.labels_updated.emit()
+        self.update_handle_scales(self.current_scale)
 
     def update_labels(self):
         self.labels_updated.emit()
@@ -268,9 +282,9 @@ class ImageView(QGraphicsView):
         if self.drawing:
             self.end_point = self.mapToScene(event.pos())
             if self.current_mode == "rect_selection":
-                self.handle_rectangle_selection()
+                self.handle_rectangle_label()
             elif self.current_mode == "polygon_selection":
-                self.handle_polygon_selection()
+                self.handle_polygon_label()
 
         elif event.button() == Qt.MiddleButton:
             self.setDragMode(QGraphicsView.NoDrag)
@@ -278,7 +292,7 @@ class ImageView(QGraphicsView):
 
         super().mouseReleaseEvent(event)
 
-    def handle_rectangle_selection(self):
+    def handle_rectangle_label(self):
         """
         Handle the creation and processing of a rectangle selection.
         """
@@ -291,9 +305,10 @@ class ImageView(QGraphicsView):
             return
 
         self.process_item(item)
+        self.update_handle_scales(self.current_scale)
         self.remove_temporary_items()
 
-    def handle_polygon_selection(self):
+    def handle_polygon_label(self):
         """
         Handle the creation and processing of a polygon selection.
         """
@@ -301,6 +316,7 @@ class ImageView(QGraphicsView):
         self.polygon_points.append(self.end_point)
         self.draw_polygon()
 
+        self.update_handle_scales(self.current_scale)
         if len(self.polygon_points) >= 3 and double_click:
             self.complete_polygon()
 
