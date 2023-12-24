@@ -22,7 +22,6 @@ from src.widgets.dialogs.convert_dialog import ExportDialog
 from src.widgets.dialogs.labels_manage_dialog import LabelsManageDialog
 from src.widgets.image_view import ImageView
 from src.widgets.labels.rectangle_item import RectangleItem
-from src.widgets.list_widget import ListWidget
 from src.widgets.logo_label import LogoLabel
 from src.widgets.two_line_list_item import TwoLineListItem
 
@@ -154,12 +153,11 @@ class AppGui(QVBoxLayout):
         self.right_panel_layout = QVBoxLayout()
 
         self.labels_label = QLabel("Labels")
-        self.labels_list = ListWidget()
+        self.labels_list = QListWidget()
         self.labels_list.setSelectionMode(QListWidget.SingleSelection)
         self.labels_list.setMaximumWidth(RIGHT_MAXW)
         self.labels_list.itemSelectionChanged.connect(self.select_labels_from_list)
         self.labels_list.installEventFilter(self)
-        self.labels_list.delete_pressed.connect(self.delete_selected_labels)
 
         self.label_name_selector = QComboBox()
         self.label_name_selector.addItems(self.anno_project.class_names)
@@ -171,12 +169,11 @@ class AppGui(QVBoxLayout):
         self.manage_labels_button.clicked.connect(self.manage_labels)
 
         self.images_label = QLabel("Images")
-        self.images_list = ListWidget()
+        self.images_list = QListWidget()
         self.images_list.setSelectionMode(QListWidget.ExtendedSelection)
         self.images_list.setMaximumWidth(RIGHT_MAXW)
         self.images_list.doubleClicked.connect(self.load_image)
         self.images_list.installEventFilter(self)
-        self.images_list.delete_pressed.connect(self.delete_selected_photos)
 
         self.right_panel_layout.addWidget(self.labels_label)
         self.right_panel_layout.addWidget(self.labels_list)
@@ -367,6 +364,7 @@ class AppGui(QVBoxLayout):
         self.label_name_selector.clear()
         self.label_name_selector.addItems(self.anno_project.class_names)
         self.image_view.update_label_names()
+        self.check_if_saved()
         self.update_project()
 
     def delete_selected_photos(self):
@@ -383,26 +381,20 @@ class AppGui(QVBoxLayout):
         self.images_list.clear()
         self.images_list.addItems([image.name for image in self.anno_project.images])
 
-    def delete_selected_labels(self):
-        selected_items = self.labels_list.selectedItems()
-        selected_labels = [item.text() for item in selected_items]
-        labels_to_delete = [
-            label
-            for label in self.image_view.current_labels
-            if label.label_name in selected_labels
-        ]
-        self.image_view.delete_rectangles(labels_to_delete)
-
     def update_selection(self):
+        self.labels_list.clearSelection()
+
         for item in self.image_view.current_labels:
-            for index in range(self.labels_list.count()):
-                list_item = self.labels_list.item(index)
-                widget = self.labels_list.itemWidget(list_item)
-                if isinstance(widget, TwoLineListItem):
-                    if widget and widget.title == item.label_name:
-                        self.labels_list.setCurrentItem(
-                            list_item, QItemSelectionModel.Select
-                        )
+            if item.isSelected():
+                for index in range(self.labels_list.count()):
+                    list_item = self.labels_list.item(index)
+                    widget = self.labels_list.itemWidget(list_item)
+                    if isinstance(widget, TwoLineListItem):
+                        if widget and widget.title == item.label_name:
+                            print(widget.title, item.label_name)
+                            self.labels_list.setCurrentItem(
+                                list_item, QItemSelectionModel.Select
+                            )
 
     def select_labels_from_list(self):
         selected_items = self.labels_list.selectedItems()

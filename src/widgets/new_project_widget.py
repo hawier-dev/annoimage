@@ -173,6 +173,6 @@ class NewProjectWidget(QWidget):
             name=project_name,
             images=images_paths,
             class_names=class_names,
-            date_created=datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            last_opened="",
         )
         self.project_created.emit(project)

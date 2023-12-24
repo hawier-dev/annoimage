@@ -16,13 +16,13 @@ class AnnoProject:
         name: str,
         images: list,
         class_names: list,
-        date_created: str,
+        last_opened: str,
         path=None,
     ):
         self.main_window = main_window
         self.path = path
         self.name = name
-        self.date_created = date_created
+        self.last_opened = last_opened
 
         self.class_names = class_names
         self.images = images
@@ -56,15 +56,15 @@ class AnnoProject:
             json_data = json.load(file)
             name = json_data.get("name")
             class_names = json_data.get("class_names")
-            date_created = json_data.get("date_created")
+            last_opened = json_data.get("last_opened")
             images = [
                 LabelImage.from_dict(image_data)
                 for image_data in json_data.get("images")
             ]
-            return cls(main_window, name, images, class_names, date_created, path)
+            return cls(main_window, name, images, class_names, last_opened, path)
 
     @classmethod
-    def create(cls, main_window, name, images, class_names, date_created):
+    def create(cls, main_window, name, images, class_names, last_opened):
         label_images = []
         for i, image_path in enumerate(images):
             image = Image.open(image_path)
@@ -82,7 +82,7 @@ class AnnoProject:
             name,
             label_images,
             class_names,
-            date_created,
+            last_opened,
             path=None,
         )
 
@@ -90,7 +90,7 @@ class AnnoProject:
         return {
             "name": self.name,
             "class_names": self.class_names,
-            "date_created": self.date_created,
+            "last_opened": self.last_opened,
             "images": [image.to_dict() for image in self.images],
         }
 

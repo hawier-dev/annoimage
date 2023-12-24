@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from datetime import datetime
 
 from PySide6.QtCore import Qt, QModelIndex
 from PySide6.QtGui import QPalette, QColor, QFontDatabase, QIcon
@@ -83,11 +84,14 @@ class MyApp(QMainWindow):
             if os.path.abspath(project["path"]) == os.path.abspath(anno_project.path):
                 self.settings["last_projects"].remove(project)
 
+        anno_project.last_opened = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        anno_project.save_project()
+
         self.settings["last_projects"].append(
             {
                 "name": anno_project.name,
                 "path": anno_project.path,
-                "date_created": anno_project.date_created,
+                "last_opened": anno_project.last_opened,
             }
         )
         self.save_settings()
@@ -118,6 +122,14 @@ class MyApp(QMainWindow):
         else:
             with open(settings_file, "w") as f:
                 json.dump(settings, f)
+
+        try:
+            settings["last_projects"] = sorted(
+                settings["last_projects"], key=lambda x: x["last_opened"], reverse=True
+            )
+        except KeyError:
+            pass
+
 
         return settings
 

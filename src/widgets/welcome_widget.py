@@ -19,9 +19,6 @@ class WelcomeWidget(QWidget):
         self.main_layout = QVBoxLayout()
         self.main_layout.setAlignment(Qt.AlignCenter)
         # sort by date created
-        last_projects = sorted(
-            last_projects, key=lambda x: x["date_created"], reverse=True
-        )
 
         self.logo_label = LogoLabel(BIG_LOGO_PATH, 200)
         self.main_layout.addWidget(self.logo_label)
