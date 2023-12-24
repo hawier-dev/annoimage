@@ -116,5 +116,7 @@ class ExportDialog(QDialog):
         )
         save_path = self.save_path_line_edit.text()
 
-        self.anno_project.export_project(dataset_type, ignore_polygons, save_empty_files, save_path)
+        self.anno_project.export_project(
+            dataset_type, ignore_polygons, save_empty_files, save_path
+        )
         self.accept()

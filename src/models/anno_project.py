@@ -94,7 +94,9 @@ class AnnoProject:
             "images": [image.to_dict() for image in self.images],
         }
 
-    def export_project(self, dataset_type, ignore_polygons, save_empty_files, save_path):
+    def export_project(
+        self, dataset_type, ignore_polygons, save_empty_files, save_path
+    ):
         """
         Export the project with the given settings.
 

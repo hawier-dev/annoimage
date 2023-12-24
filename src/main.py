@@ -130,7 +130,6 @@ class MyApp(QMainWindow):
         except KeyError:
             pass
 
-
         return settings
 
     def show_about_dialog(self):

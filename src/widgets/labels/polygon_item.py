@@ -33,7 +33,7 @@ class PolygonItem(QGraphicsPolygonItem):
             "bbox": [bbox.x(), bbox.y(), bbox.width(), bbox.height()],
             "area": bbox.width() * bbox.height(),
             "category_id": self.label_name_id,
-            "iscrowd": 0
+            "iscrowd": 0,
         }
 
     def get_bounding_box(self):
@@ -41,12 +41,18 @@ class PolygonItem(QGraphicsPolygonItem):
 
     def to_rectangle_item(self):
         """
-          Converts current object to a RectangleItem.
-          Returns:
-              RectangleItem: The converted RectangleItem object.
+        Converts current object to a RectangleItem.
+        Returns:
+            RectangleItem: The converted RectangleItem object.
         """
         bbox = self.get_bounding_box()
-        return RectangleItem(self.image_view, bbox.topLeft(), bbox.bottomRight(), self.label_name, self.label_name_id)
+        return RectangleItem(
+            self.image_view,
+            bbox.topLeft(),
+            bbox.bottomRight(),
+            self.label_name,
+            self.label_name_id,
+        )
 
     def to_dict(self):
         return {
