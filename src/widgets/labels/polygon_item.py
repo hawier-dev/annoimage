@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QPointF
+from PySide6.QtCore import Qt, QPointF, QRectF
 from PySide6.QtGui import QPen, QBrush, QColor, QPolygonF
 from PySide6.QtWidgets import QGraphicsPolygonItem, QGraphicsEllipseItem
 
@@ -115,8 +115,7 @@ class PolygonHandleItem(QGraphicsEllipseItem):
     def __init__(self, x, y, w, h, parent, index):
         super().__init__(x, y, w, h, parent)
         self.parent = parent
-        self.index = index  # Index of the vertex in the polygon
-        self.setFlag(QGraphicsEllipseItem.ItemIsMovable)
+        self.index = index
         self.setBrush(QBrush(QColor(255, 0, 0)))
         pen = QPen(QColor(0, 0, 0))
         pen.setWidth(0.5)
@@ -126,7 +125,16 @@ class PolygonHandleItem(QGraphicsEllipseItem):
 
     def mouseMoveEvent(self, event):
         QGraphicsEllipseItem.mouseMoveEvent(self, event)
-        self.parent.move_vertex(self.index, self.pos())
+        new_pos = self.constrain_position(self.pos())
+        self.setPos(new_pos)
+        self.parent.move_vertex(self.index, new_pos)
+
+    def constrain_position(self, pos):
+        image_rect = QRectF(0, 0, self.parent.parent.image_width, self.parent.parent.image_height)
+
+        x = min(max(pos.x(), image_rect.left()), image_rect.right())
+        y = min(max(pos.y(), image_rect.top()), image_rect.bottom())
+        return QPointF(x, y)
 
     def set_size(self, size):
         """

@@ -443,6 +443,7 @@ class ImageView(QGraphicsView):
         self.current_labels.append(polygon_item)
         self.scene().addItem(polygon_item)
         self.labels_updated.emit()
+        self.drawing_label.emit((0, 0), False)
         self.drawing = False
         self.polygon_points = []
 
@@ -474,10 +475,12 @@ class ImageView(QGraphicsView):
             self.setDragMode(QGraphicsView.RubberBandDrag)
             self.setCursor(Qt.ArrowCursor)
             self.movable_enable()
+            self.resize_enable()
         else:
             self.setDragMode(QGraphicsView.NoDrag)
             self.setCursor(Qt.CrossCursor)
             self.movable_disable()
+            self.resize_disable()
 
         self.current_mode = mode
 
@@ -538,3 +541,13 @@ class ImageView(QGraphicsView):
         for item in self.current_labels:
             item.setFlag(QGraphicsRectItem.ItemIsMovable, True)
             item.setFlag(QGraphicsRectItem.ItemIsSelectable, True)
+
+    def resize_disable(self):
+        for item in self.current_labels:
+            for handler in item.resize_handles:
+                handler.setFlag(QGraphicsRectItem.ItemIsMovable, False)
+
+    def resize_enable(self):
+        for item in self.current_labels:
+            for handler in item.resize_handles:
+                handler.setFlag(QGraphicsRectItem.ItemIsMovable, True)

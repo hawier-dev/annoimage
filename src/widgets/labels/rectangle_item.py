@@ -168,7 +168,6 @@ class RectangleItem(QGraphicsRectItem):
                 self.rect().x() + x * self.rect().width(),
                 self.rect().y() + y * self.rect().height(),
             )
-            handle.setFlag(QGraphicsEllipseItem.ItemIsMovable)
             handle.setBrush(QBrush(QColor(255, 0, 0)))
             handle.setData(0, (x, y))
 
