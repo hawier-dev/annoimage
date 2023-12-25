@@ -4,6 +4,8 @@ from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QObject
 from PySide6.QtWidgets import QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsItem
 from PySide6.QtGui import QPen, QBrush, QColor
 
+from src.utils.functions import calculate_handle_size
+
 
 class RectangleItem(QGraphicsRectItem):
     start_resizing = Signal()
@@ -76,21 +78,15 @@ class RectangleItem(QGraphicsRectItem):
             QPointF(min(x1, x2), min(y1, y2)), QPointF(max(x1, x2), max(y1, y2))
         )
 
-    def calculate_base_handle_size(self):
-        average_dim = (self.parent.image_width + self.parent.image_height) / 2
-        return 0.01 * average_dim
-
     def update_handle_scale(self, scale_factor):
         """
         Adjust the size of the resize handles based on the scale factor.
         """
-        base_handle_size = self.calculate_base_handle_size()
-        scaled_handle_size = base_handle_size * scale_factor
-
-        scaled_handle_size = max(self.min_handle_size, min(scaled_handle_size, self.max_handle_size))
-
+        handle_size = calculate_handle_size(
+            self.parent.image_width, self.parent.image_height, scale_factor, self.min_handle_size, self.max_handle_size
+        )
         for handle in self.resize_handles:
-            handle.set_size(scaled_handle_size)
+            handle.set_size(handle_size)
 
     def set_default_color(self):
         self.setPen(self.default_pen)
@@ -165,7 +161,9 @@ class RectangleItem(QGraphicsRectItem):
         half_size = handle_size / 2
 
         for x, y in [(0, 0), (1, 0), (0, 1), (1, 1)]:
-            handle = HandleItem(-half_size, -half_size, handle_size, handle_size, self)
+            handle = RectangleHandleItem(
+                -half_size, -half_size, handle_size, handle_size, self
+            )
             handle.setPos(
                 self.rect().x() + x * self.rect().width(),
                 self.rect().y() + y * self.rect().height(),
@@ -196,8 +194,7 @@ class RectangleItem(QGraphicsRectItem):
             handle.setZValue(0)
 
 
-class HandleItem(QGraphicsEllipseItem):
-    resized = Signal()
+class RectangleHandleItem(QGraphicsEllipseItem):
     def __init__(self, x, y, w, h, parent):
         super().__init__(x, y, w, h, parent)
         self.parent = parent
