@@ -126,8 +126,7 @@ class PolygonHandleItem(QGraphicsEllipseItem):
 
     def mouseMoveEvent(self, event):
         QGraphicsEllipseItem.mouseMoveEvent(self, event)
-        new_pos = self.pos() + event.pos() - event.lastPos()
-        self.parent.move_vertex(self.index, new_pos)
+        self.parent.move_vertex(self.index, self.pos())
 
     def set_size(self, size):
         """
