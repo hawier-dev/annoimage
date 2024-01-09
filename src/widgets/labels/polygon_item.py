@@ -12,7 +12,6 @@ class PolygonItem(QGraphicsPolygonItem):
         self.parent = parent
         self.label_name = label_name
         self.label_name_id = label_name_id
-        self.selectable = True
         self.hovered = False
         self.resize_handles = []
         self.min_handle_size = 0.01
@@ -48,7 +47,11 @@ class PolygonItem(QGraphicsPolygonItem):
         Adjust the size of the resize handles based on the scale factor.
         """
         handle_size = calculate_handle_size(
-            self.parent.image_width, self.parent.image_height, scale_factor, self.min_handle_size, self.max_handle_size
+            self.parent.image_width,
+            self.parent.image_height,
+            scale_factor,
+            self.min_handle_size,
+            self.max_handle_size,
         )
         for handle in self.resize_handles:
             handle.set_size(handle_size)
@@ -130,7 +133,9 @@ class PolygonHandleItem(QGraphicsEllipseItem):
         self.parent.move_vertex(self.index, new_pos)
 
     def constrain_position(self, pos):
-        image_rect = QRectF(0, 0, self.parent.parent.image_width, self.parent.parent.image_height)
+        image_rect = QRectF(
+            0, 0, self.parent.parent.image_width, self.parent.parent.image_height
+        )
 
         x = min(max(pos.x(), image_rect.left()), image_rect.right())
         y = min(max(pos.y(), image_rect.top()), image_rect.bottom())

@@ -12,7 +12,7 @@ class ImageLoader(QThread):
         self.file_path = file_path
 
     def run(self):
-        img = Image.open(self.file_path)
-        img = ImageQt(img)
+        self.image = Image.open(self.file_path)
+        img = ImageQt(self.image)
         pixmap = QPixmap.fromImage(img)
         self.loaded.emit(pixmap)

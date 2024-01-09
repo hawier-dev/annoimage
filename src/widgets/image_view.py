@@ -1,3 +1,7 @@
+from functools import partial
+
+import cv2
+import numpy as np
 from PIL import Image
 from PySide6.QtCore import QPointF, Qt, Signal, QEvent, QTimer
 from PySide6.QtWidgets import (
@@ -11,12 +15,14 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import (
     QPainter,
     QMouseEvent,
-    QPolygonF,
+    QPolygonF, QImage,
 )
 
+from src.models.detection_models import DetectionQueue, DetectionTask
 from src.utils.constants import SURFACE_COLOR
 from src.models.label_image import LabelImage
-from src.utils.functions import points_are_close
+from src.utils.detection import detect_contours
+from src.utils.functions import points_are_close, simplify_contour
 from src.widgets.dialogs.add_label_dialog import AddLabelDialog
 from src.widgets.labels.polygon_item import PolygonItem
 from src.widgets.labels.rectangle_item import RectangleItem
@@ -39,6 +45,7 @@ class ImageView(QGraphicsView):
         self.rect_item = None
         self.label_name = None
         self.label_id = None
+        self.image_id = None
         self.polygon_points = []
         self.polygon_item = None
         self.initial_zoom = 1
@@ -47,6 +54,8 @@ class ImageView(QGraphicsView):
         self.min_zoom = 1.0
         self.output_path = None
         self.current_labels = []
+        self.detection_queue = DetectionQueue()
+        self.detection_queue.task_completed.connect(self.on_detection_task_finished)
 
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
@@ -116,10 +125,10 @@ class ImageView(QGraphicsView):
         self.loading_label.setVisible(True)
 
         self.image_loader = ImageLoader(label_image.path)
-        self.image_loader.loaded.connect(self.image_loaded)
+        self.image_loader.loaded.connect(partial(self.image_loaded, label_image.image_id))
         self.image_loader.start()
 
-    def image_loaded(self, pixmap):
+    def image_loaded(self, image_id, pixmap):
         """
         Called when image is loaded
         :param pixmap: QPixmap object
@@ -141,8 +150,28 @@ class ImageView(QGraphicsView):
         self.scene().setSceneRect(0, 0, self.image_width, self.image_height)
 
         self.on_image_loaded.emit()
+        self.image_id = image_id
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
+
+    def on_detection_task_finished(self, task: DetectionTask, result):
+        """
+        Handle the finished detection task.
+
+        :param task: The DetectionTask that has been completed.
+        :param result: The result of the detection, typically a list of detected contours.
+        """
+        offset_x, offset_y = task.image_part_position
+        if result:
+            adjusted_contour = simplify_contour([point[0] for point in result])
+            adjusted_contour = [(point[0][0] + offset_x, point[0][1] + offset_y) for point in adjusted_contour]
+            polygon = QPolygonF([QPointF(point[0], point[1]) for point in adjusted_contour])
+            polygon_item = PolygonItem(self, polygon, self.generate_label_name(task.label_name), self.label_id)
+            self.scene().addItem(polygon_item)
+            self.current_labels.append(polygon_item)
+
+            self.labels_updated.emit()
+        self.parent.update_queue_count()
 
     def load_labels(self, labels):
         """
@@ -197,8 +226,12 @@ class ImageView(QGraphicsView):
             if item:
                 for i in self.scene().items():
                     i.setSelected(False)
-
-        elif event.button() == Qt.LeftButton and self.current_mode == "rect_selection":
+                item.setSelected(True)
+        elif (
+            event.button() == Qt.LeftButton
+            and (self.current_mode == "rect_selection"
+            or self.current_mode == "detection")
+        ):
             self.start_point = self.mapToScene(event.pos())
             self.drawing = (
                 0 <= self.start_point.x() <= self.image_width
@@ -231,7 +264,7 @@ class ImageView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self.drawing and self.current_mode == "rect_selection":
+        if self.drawing and (self.current_mode == "rect_selection" or self.current_mode == "detection"):
             self.end_point = self.mapToScene(event.pos())
             self.draw_rectangle()
 
@@ -286,6 +319,8 @@ class ImageView(QGraphicsView):
                 self.handle_rectangle_label()
             elif self.current_mode == "polygon_selection":
                 self.handle_polygon_label(event.pos())
+            elif self.current_mode == "detection":
+                self.handle_auto_detection(event.pos())
 
         elif event.button() == Qt.MiddleButton:
             self.setDragMode(QGraphicsView.NoDrag)
@@ -447,6 +482,32 @@ class ImageView(QGraphicsView):
         self.drawing = False
         self.polygon_points = []
 
+    def handle_auto_detection(self, pos):
+        """
+        Handle the creation and processing of a detection selection.
+        """
+        self.draw_rectangle()
+        self.drawing = False
+
+        rect = self.rect_item.rect()
+        x, y, width, height = rect.x(), rect.y(), rect.width(), rect.height()
+
+        self.remove_temporary_items()
+
+        cropped_image, coords = self.crop_image(x, y, width, height)
+        task = DetectionTask(image=cropped_image,original_image_id=self.image_id, image_part_position=coords, label_name=self.label_name, confidence_threshold=0.1)
+        self.detection_queue.add_task(task)
+        self.parent.update_queue_count()
+
+    def crop_image(self, x, y, width, height):
+        """
+        Crop the selected area from the image using OpenCV.
+        """
+        image = self.image_loader.image
+        cropped_image = image.crop((x, y, x + width, y + height))
+        cropped_image = cv2.cvtColor(np.array(cropped_image), cv2.COLOR_RGB2BGR)
+        return cropped_image, (x, y)
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Delete:
             self.delete_rectangles(self.scene().selectedItems())
@@ -455,6 +516,7 @@ class ImageView(QGraphicsView):
             self.setDragMode(QGraphicsView.ScrollHandDrag)
             self.setCursor(Qt.ClosedHandCursor)
             self.movable_disable()
+
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Space and not event.isAutoRepeat():
@@ -468,19 +530,17 @@ class ImageView(QGraphicsView):
         :param mode: A string representing the mode to be set.
                      Valid values are 'select', 'rect_selection', 'polygon_selection'.
         """
-        if mode not in ["select", "rect_selection", "polygon_selection"]:
+        if mode not in ["select", "rect_selection", "polygon_selection", "detection"]:
             raise ValueError(f"Invalid mode: {mode}")
 
         if mode == "select":
             self.setDragMode(QGraphicsView.RubberBandDrag)
             self.setCursor(Qt.ArrowCursor)
             self.movable_enable()
-            self.resize_enable()
         else:
             self.setDragMode(QGraphicsView.NoDrag)
             self.setCursor(Qt.CrossCursor)
             self.movable_disable()
-            self.resize_disable()
 
         self.current_mode = mode
 
@@ -510,6 +570,8 @@ class ImageView(QGraphicsView):
         self.labels_updated.emit()
 
     def select_labels(self, labels):
+        if self.parent.updating_selection:
+            return
         for item in self.current_labels:
             if item.label_name in labels:
                 item.setSelected(True)

@@ -35,7 +35,6 @@ class RectangleItem(QGraphicsRectItem):
         self.start_point = start_point
         self.end_point = end_point
 
-        self.selectable = True
         self.label_name = label_name
         self.label_name_id = label_name_id
 
@@ -83,7 +82,11 @@ class RectangleItem(QGraphicsRectItem):
         Adjust the size of the resize handles based on the scale factor.
         """
         handle_size = calculate_handle_size(
-            self.parent.image_width, self.parent.image_height, scale_factor, self.min_handle_size, self.max_handle_size
+            self.parent.image_width,
+            self.parent.image_height,
+            scale_factor,
+            self.min_handle_size,
+            self.max_handle_size,
         )
         for handle in self.resize_handles:
             handle.set_size(handle_size)
@@ -142,12 +145,10 @@ class RectangleItem(QGraphicsRectItem):
         self.setBrush(hover_brush)
 
     def hoverEnterEvent(self, event):
-        if self.selectable:
-            self.set_hover_color()
+        self.set_hover_color()
 
     def hoverLeaveEvent(self, event):
-        if self.selectable:
-            self.set_default_color()
+        self.set_default_color()
 
     def resize_started(self):
         self.parent.movable_disable()
@@ -200,6 +201,7 @@ class RectangleHandleItem(QGraphicsEllipseItem):
         pen = QPen(QColor(0, 0, 0))
         pen.setWidth(0.5)
         pen.setStyle(Qt.SolidLine)
+        self.resizing = False
 
         self.setPen(pen)
 

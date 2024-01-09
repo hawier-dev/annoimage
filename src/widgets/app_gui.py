@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QComboBox,
     QMenu,
-    QMenuBar,
+    QMenuBar, QDialog,
 )
 
 from src.models.anno_project import AnnoProject
@@ -31,6 +31,7 @@ class AppGui(QVBoxLayout):
         super(AppGui, self).__init__(parent)
         self.main_window = parent
         self.anno_project = anno_project
+        self.updating_selection = False
 
         self.setContentsMargins(0, 0, 5, 0)
 
@@ -118,6 +119,14 @@ class AppGui(QVBoxLayout):
         self.polygon_button.setCheckable(True)
         self.polygon_button.setShortcut("P")
 
+        # Auto detect contours
+        self.auto_detect_button = QAction(
+            QIcon("icons/detection.png"), "Auto-detect (A)", self
+        )
+        self.auto_detect_button.triggered.connect(self.set_detection_mode)
+        self.auto_detect_button.setCheckable(True)
+        self.auto_detect_button.setShortcut("P")
+
         self.previous_button = QAction(
             QIcon("icons/previous.png"), "Previous (Arrow Left)", self
         )
@@ -135,6 +144,7 @@ class AppGui(QVBoxLayout):
         self.left_toolbar.addAction(self.select_button)
         self.left_toolbar.addAction(self.rectangle_button)
         self.left_toolbar.addAction(self.polygon_button)
+        self.left_toolbar.addAction(self.auto_detect_button)
         self.left_toolbar.addAction(self.previous_button)
         self.left_toolbar.addAction(self.next_button)
         self.left_toolbar.addAction(self.save_button)
@@ -197,10 +207,14 @@ class AppGui(QVBoxLayout):
         self.check_if_saved()
         self.box_size_label = QLabel("")
 
+        self.queue_button = QPushButton("Queue (0)")
+        self.queue_button.clicked.connect(self.show_queue_list)
+
         self.status_bar_layout.addWidget(self.version)
         self.status_bar_layout.addStretch()
         self.status_bar_layout.addWidget(self.box_size_label)
         self.status_bar_layout.addWidget(self.status_label)
+        self.status_bar_layout.addWidget(self.queue_button)
 
         self.status_bar.setLayout(self.status_bar_layout)
 
@@ -260,6 +274,21 @@ class AppGui(QVBoxLayout):
         """
         export_dialog = ExportDialog(self.anno_project)
         export_dialog.exec()
+
+    def show_queue_list(self):
+        dialog = QDialog()
+        dialog.setWindowTitle("Queue list")
+        layout = QVBoxLayout(dialog)
+
+        list_widget = QListWidget(dialog)
+        for task in self.image_view.detection_queue.queue:
+            list_widget.addItem("sdasdasd")
+
+        layout.addWidget(list_widget)
+        dialog.exec_()
+
+    def update_queue_count(self):
+        self.queue_button.setText(f"Queue ({len(self.image_view.detection_queue.queue)})")
 
     def update_image_list(self):
         """
@@ -382,6 +411,10 @@ class AppGui(QVBoxLayout):
         self.images_list.addItems([image.name for image in self.anno_project.images])
 
     def update_selection(self):
+        if self.updating_selection:
+            return
+
+        self.updating_selection = True
         self.labels_list.clearSelection()
 
         for item in self.image_view.current_labels:
@@ -391,20 +424,28 @@ class AppGui(QVBoxLayout):
                     widget = self.labels_list.itemWidget(list_item)
                     if isinstance(widget, TwoLineListItem):
                         if widget and widget.title == item.label_name:
-                            print(widget.title, item.label_name)
+                            print(f"{widget.title} == {item.label_name}")
                             self.labels_list.setCurrentItem(
                                 list_item, QItemSelectionModel.Select
                             )
+        self.updating_selection = False
 
     def select_labels_from_list(self):
+        if self.updating_selection:
+            return
+
+        self.updating_selection = True
+
         selected_items = self.labels_list.selectedItems()
         selected_labels = [item.text() for item in selected_items]
 
         self.image_view.select_labels(selected_labels)
+        self.updating_selection = False
 
     def set_select_mode(self):
         self.select_button.setChecked(True)
         self.polygon_button.setChecked(False)
+        self.auto_detect_button.setChecked(False)
         self.rectangle_button.setChecked(False)
         self.image_view.set_mode("select")
 
@@ -412,13 +453,22 @@ class AppGui(QVBoxLayout):
         self.select_button.setChecked(False)
         self.polygon_button.setChecked(False)
         self.rectangle_button.setChecked(True)
+        self.auto_detect_button.setChecked(False)
         self.image_view.set_mode("rect_selection")
 
     def set_polygon_selection(self):
         self.select_button.setChecked(False)
         self.rectangle_button.setChecked(False)
         self.polygon_button.setChecked(True)
+        self.auto_detect_button.setChecked(False)
         self.image_view.set_mode("polygon_selection")
+
+    def set_detection_mode(self):
+        self.select_button.setChecked(False)
+        self.polygon_button.setChecked(False)
+        self.rectangle_button.setChecked(False)
+        self.auto_detect_button.setChecked(True)
+        self.image_view.set_mode("detection")
 
     def previous_image(self):
         current_image = self.anno_project.current_image
