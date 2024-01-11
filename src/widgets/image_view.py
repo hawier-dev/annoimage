@@ -192,6 +192,7 @@ class ImageView(QGraphicsView):
         self.set_mode(self.current_mode)
         self.labels_updated.emit()
         self.update_handle_scales(self.current_scale)
+        self.resize_enable()
 
     def update_labels(self):
         self.labels_updated.emit()
@@ -517,7 +518,6 @@ class ImageView(QGraphicsView):
             self.setCursor(Qt.ClosedHandCursor)
             self.movable_disable()
 
-
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Space and not event.isAutoRepeat():
             self.setDragMode(QGraphicsView.NoDrag)
@@ -537,10 +537,12 @@ class ImageView(QGraphicsView):
             self.setDragMode(QGraphicsView.RubberBandDrag)
             self.setCursor(Qt.ArrowCursor)
             self.movable_enable()
+            self.resize_enable()
         else:
             self.setDragMode(QGraphicsView.NoDrag)
             self.setCursor(Qt.CrossCursor)
             self.movable_disable()
+            self.resize_disable()
 
         self.current_mode = mode
 
@@ -610,6 +612,7 @@ class ImageView(QGraphicsView):
                 handler.setFlag(QGraphicsRectItem.ItemIsMovable, False)
 
     def resize_enable(self):
-        for item in self.current_labels:
-            for handler in item.resize_handles:
-                handler.setFlag(QGraphicsRectItem.ItemIsMovable, True)
+        if self.current_mode == "select":
+            for item in self.current_labels:
+                for handler in item.resize_handles:
+                    handler.setFlag(QGraphicsRectItem.ItemIsMovable, True)

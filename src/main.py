@@ -50,7 +50,6 @@ class MyApp(QMainWindow):
                 "Load Project",
                 filter="Project Files (*.annoimg)",
             )
-
         if path:
             if not os.path.exists(path):
                 delete_dialog = YesOrNoDialog(
@@ -100,6 +99,7 @@ class MyApp(QMainWindow):
 
         self.setWindowTitle(f"{TITLE} - {anno_project.name}")
 
+        print(f"{TITLE} - {anno_project.name}")
         self.app_gui = AppGui(anno_project, self)
         self.central_widget.setLayout(self.app_gui)
         self.setCentralWidget(self.central_widget)

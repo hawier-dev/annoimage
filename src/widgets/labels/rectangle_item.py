@@ -38,7 +38,7 @@ class RectangleItem(QGraphicsRectItem):
         self.label_name = label_name
         self.label_name_id = label_name_id
 
-        self.min_handle_size = 0.01
+        self.min_handle_size = 1
         self.max_handle_size = 40
 
         self.set_default_color()
@@ -152,9 +152,11 @@ class RectangleItem(QGraphicsRectItem):
 
     def resize_started(self):
         self.parent.movable_disable()
+        self.parent.resize_disable()
 
     def resize_stopped(self):
         self.parent.movable_enable()
+        self.parent.resize_enable()
         self.parent.update_labels()
 
     def add_resize_handles(self):
