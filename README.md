@@ -1,7 +1,5 @@
 !["test"](icons/annoimage_full.png)
 
-**(Work In Progress)**
-
 **AnnoImage** is an intuitive and efficient image annotation tool designed for object detection tasks. It offers a user-friendly and fast way to mark elements in images, essential for projects involving machine learning and computer vision.
 
 ![AnnoImage](./screenshots/rect.gif)
@@ -23,8 +21,6 @@
 
 - [Installation Guide](https://github.com/hawier-dev/annoimage/wiki/Installation-guide)
 - [Creating your First Project Guide](./first_project_guide.md)
-
-- [Basic Annotation Guide](annotation_guide.md)
 
 ## License
 
