@@ -15,7 +15,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import (
     QPainter,
     QMouseEvent,
-    QPolygonF, QImage,
+    QPolygonF,
+    QImage,
 )
 
 from src.models.detection_models import DetectionQueue, DetectionTask
@@ -24,6 +25,7 @@ from src.models.label_image import LabelImage
 from src.utils.detection import detect_contours
 from src.utils.functions import points_are_close, simplify_contour
 from src.widgets.dialogs.add_label_dialog import AddLabelDialog
+from src.widgets.dialogs.error_dialog import ErrorDialog
 from src.widgets.labels.polygon_item import PolygonItem
 from src.widgets.labels.rectangle_item import RectangleItem
 from src.models.image_loader import ImageLoader
@@ -125,7 +127,9 @@ class ImageView(QGraphicsView):
         self.loading_label.setVisible(True)
 
         self.image_loader = ImageLoader(label_image.path)
-        self.image_loader.loaded.connect(partial(self.image_loaded, label_image.image_id))
+        self.image_loader.loaded.connect(
+            partial(self.image_loaded, label_image.image_id)
+        )
         self.image_loader.start()
 
     def image_loaded(self, image_id, pixmap):
@@ -153,25 +157,53 @@ class ImageView(QGraphicsView):
         self.image_id = image_id
         self.image_label.setVisible(False)
         self.loading_label.setVisible(False)
+        self.set_mode(self.current_mode)
 
-    def on_detection_task_finished(self, task: DetectionTask, result):
+    def on_detection_task_finished(self, task: DetectionTask, results):
         """
         Handle the finished detection task.
 
         :param task: The DetectionTask that has been completed.
         :param result: The result of the detection, typically a list of detected contours.
         """
-        offset_x, offset_y = task.image_part_position
-        if result:
-            adjusted_contour = simplify_contour([point[0] for point in result])
-            adjusted_contour = [(point[0][0] + offset_x, point[0][1] + offset_y) for point in adjusted_contour]
-            polygon = QPolygonF([QPointF(point[0], point[1]) for point in adjusted_contour])
-            polygon_item = PolygonItem(self, polygon, self.generate_label_name(task.label_name), self.label_id)
-            self.scene().addItem(polygon_item)
-            self.current_labels.append(polygon_item)
+        try:
+            if results[0] == "no_model_found":
+                error_dialog = ErrorDialog(
+                    widget=self,
 
-            self.labels_updated.emit()
+                    window_title="Error",
+                    title="Error",
+                    text="Model not found. Please download it.",
+                    url="https://github.com/hawier-dev/annoimage/wiki/Installation-guide#option-2-running-from-source",
+                )
+                error_dialog.exec()
+                return
+
+        except IndexError:
+            return
+        offset_x, offset_y = task.image_part_position
+        if results:
+            for item in results:
+                adjusted_contour = simplify_contour([point[0] for point in item])
+                adjusted_contour = [
+                    (point[0][0] + offset_x, point[0][1] + offset_y)
+                    for point in adjusted_contour
+                ]
+                polygon = QPolygonF(
+                    [QPointF(point[0], point[1]) for point in adjusted_contour]
+                )
+                polygon_item = PolygonItem(
+                    self,
+                    polygon,
+                    self.generate_label_name(task.label_name),
+                    self.label_id,
+                )
+                self.scene().addItem(polygon_item)
+                self.current_labels.append(polygon_item)
+
+                self.labels_updated.emit()
         self.parent.update_queue_count()
+        self.set_mode(self.current_mode)
 
     def load_labels(self, labels):
         """
@@ -228,10 +260,8 @@ class ImageView(QGraphicsView):
                 for i in self.scene().items():
                     i.setSelected(False)
                 item.setSelected(True)
-        elif (
-            event.button() == Qt.LeftButton
-            and (self.current_mode == "rect_selection"
-            or self.current_mode == "detection")
+        elif event.button() == Qt.LeftButton and (
+            self.current_mode == "rect_selection" or self.current_mode == "detection"
         ):
             self.start_point = self.mapToScene(event.pos())
             self.drawing = (
@@ -265,7 +295,9 @@ class ImageView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self.drawing and (self.current_mode == "rect_selection" or self.current_mode == "detection"):
+        if self.drawing and (
+            self.current_mode == "rect_selection" or self.current_mode == "detection"
+        ):
             self.end_point = self.mapToScene(event.pos())
             self.draw_rectangle()
 
@@ -327,6 +359,7 @@ class ImageView(QGraphicsView):
             self.setDragMode(QGraphicsView.NoDrag)
             self.set_mode(self.current_mode)
 
+        self.set_mode(self.current_mode)
         super().mouseReleaseEvent(event)
 
     def handle_rectangle_label(self):
@@ -496,7 +529,13 @@ class ImageView(QGraphicsView):
         self.remove_temporary_items()
 
         cropped_image, coords = self.crop_image(x, y, width, height)
-        task = DetectionTask(image=cropped_image,original_image_id=self.image_id, image_part_position=coords, label_name=self.label_name, confidence_threshold=0.1)
+        task = DetectionTask(
+            image=cropped_image,
+            original_image_id=self.image_id,
+            image_part_position=coords,
+            label_name=self.label_name,
+            confidence_threshold=0.1,
+        )
         self.detection_queue.add_task(task)
         self.parent.update_queue_count()
 

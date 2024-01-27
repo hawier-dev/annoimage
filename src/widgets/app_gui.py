@@ -12,7 +12,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QComboBox,
     QMenu,
-    QMenuBar, QDialog,
+    QMenuBar,
+    QDialog, QWidgetAction,
 )
 
 from src.models.anno_project import AnnoProject
@@ -20,6 +21,7 @@ from src.models.label_image import LabelImage
 from src.utils.constants import *
 from src.widgets.dialogs.convert_dialog import ExportDialog
 from src.widgets.dialogs.labels_manage_dialog import LabelsManageDialog
+from src.widgets.dialogs.yes_or_no_dialog import YesOrNoDialog
 from src.widgets.image_view import ImageView
 from src.widgets.labels.rectangle_item import RectangleItem
 from src.widgets.logo_label import LogoLabel
@@ -38,11 +40,8 @@ class AppGui(QVBoxLayout):
         # Menu bar
         self.menu_bar = QMenuBar()
         self.file_menu = self.menu_bar.addMenu("File")
-        self.new_project_action = QAction("New Project", self)
-        self.new_project_action.triggered.connect(self.main_window.new_project)
-        self.file_menu.addAction(self.new_project_action)
-        self.load_project_action = QAction("Load Project", self)
-        self.load_project_action.triggered.connect(self.main_window.load_project)
+        self.load_project_action = QAction("Home", self)
+        self.load_project_action.triggered.connect(self.back_to_home)
         self.file_menu.addAction(self.load_project_action)
         self.save_project_action = QAction("Save Project", self)
         self.save_project_action.triggered.connect(self.save_project)
@@ -208,7 +207,6 @@ class AppGui(QVBoxLayout):
         self.box_size_label = QLabel("")
 
         self.queue_button = QPushButton("Queue (0)")
-        self.queue_button.clicked.connect(self.show_queue_list)
 
         self.status_bar_layout.addWidget(self.version)
         self.status_bar_layout.addStretch()
@@ -225,25 +223,48 @@ class AppGui(QVBoxLayout):
         self.addSpacing(5)
 
         self.update_image_list()
-        self.set_select_mode()
         try:
             self.set_label_name(self.anno_project.class_names[0])
         except IndexError:
             pass
+        self.set_select_mode()
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.ContextMenu and source is self.labels_list:
             item = source.itemAt(event.pos())
             menu = QMenu()
-
+            item_text = self.labels_list.itemWidget(item).title
             if item is not None:
+                label_combobox = QComboBox()
+                label_combobox.addItems(self.anno_project.class_names)
+                try:
+                    label_item = [
+                        label for label in self.image_view.current_labels
+                        if label.label_name == item_text
+                    ][0]
+                    label_id = label_item.label_name_id
+                    label_combobox.setCurrentText(self.anno_project.class_names[label_id])
+                except IndexError:
+                    return
+
+                label_combobox_action = QWidgetAction(menu)
+                label_combobox_action.setDefaultWidget(label_combobox)
+                menu.addAction(label_combobox_action)
+
                 menu.addAction("Zoom to")
 
                 selected_menu = menu.exec_(event.globalPos())
                 if selected_menu is None:
+                    try:
+                        if label_id != self.anno_project.class_names.index(
+                            label_combobox.currentText()
+                        ):
+                            self.change_label_name(item_text, label_combobox.currentText())
+                    except:
+                        pass
                     return True
                 elif selected_menu.text() == "Zoom to":
-                    self.image_view.zoom_to_rect(item.text())
+                    self.image_view.zoom_to_rect(item_text)
 
             return True
         elif event.type() == QEvent.ContextMenu and source is self.images_list:
@@ -268,6 +289,25 @@ class AppGui(QVBoxLayout):
             return True
         return super(QVBoxLayout, self).eventFilter(source, event)
 
+    def back_to_home(self):
+        if not self.anno_project.is_saved():
+            yes_or_no_dialog = YesOrNoDialog(
+                title="Unsaved changes",
+                text="You have unsaved changes. Do you want to save?",
+                window_title="Unsaved changes",
+                cancel=True,
+                widget=self.main_window,
+            )
+            result = yes_or_no_dialog.exec()
+
+            if result == QDialog.Accepted:
+                self.save_project()
+
+            elif result == QDialog.Rejected and yes_or_no_dialog.canceled:
+                return
+
+        self.main_window.show_welcome_widget()
+
     def export_project(self):
         """
         Exports project
@@ -275,20 +315,24 @@ class AppGui(QVBoxLayout):
         export_dialog = ExportDialog(self.anno_project)
         export_dialog.exec()
 
-    def show_queue_list(self):
-        dialog = QDialog()
-        dialog.setWindowTitle("Queue list")
-        layout = QVBoxLayout(dialog)
-
-        list_widget = QListWidget(dialog)
-        for task in self.image_view.detection_queue.queue:
-            list_widget.addItem("sdasdasd")
-
-        layout.addWidget(list_widget)
-        dialog.exec_()
-
     def update_queue_count(self):
-        self.queue_button.setText(f"Queue ({len(self.image_view.detection_queue.queue)})")
+        self.queue_button.setText(
+            f"Queue ({len(self.image_view.detection_queue.queue)})"
+        )
+
+    def change_label_name(self, label_name, new_label):
+        """
+        Changes label name
+        """
+        for label in self.image_view.current_labels:
+            if label.label_name == label_name:
+                label.label_name = self.image_view.generate_label_name(new_label)
+                label.label_name_id = self.anno_project.class_names.index(
+                    new_label
+                )
+                break
+
+        self.update_project()
 
     def update_image_list(self):
         """
@@ -335,9 +379,12 @@ class AppGui(QVBoxLayout):
         """
         Updates project with current labels from image viewer
         """
-        self.anno_project.current_image.labels = [
-            item.to_dict() for item in self.image_view.current_labels
-        ]
+        try:
+            self.anno_project.current_image.labels = [
+                item.to_dict() for item in self.image_view.current_labels
+            ]
+        except AttributeError:
+            return
         self.check_if_saved()
 
         self.labels_list.clear()
@@ -437,7 +484,7 @@ class AppGui(QVBoxLayout):
         self.updating_selection = True
 
         selected_items = self.labels_list.selectedItems()
-        selected_labels = [item.text() for item in selected_items]
+        selected_labels = [self.labels_list.itemWidget(item).title for item in selected_items]
 
         self.image_view.select_labels(selected_labels)
         self.updating_selection = False

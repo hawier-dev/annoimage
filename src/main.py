@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, QModelIndex
 from PySide6.QtGui import QPalette, QColor, QFontDatabase, QIcon
 from PySide6.QtWidgets import QMainWindow, QWidget, QApplication, QFileDialog, QDialog
 from appdirs import user_data_dir
+
 from src.widgets.app_gui import AppGui
 from src.utils.constants import *
 from src.models.anno_project import AnnoProject
@@ -19,19 +20,20 @@ from src.widgets.dialogs.yes_or_no_dialog import YesOrNoDialog
 class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.app_gui = None
         self.settings = self.load_settings()
 
         self.setWindowTitle(TITLE)
         self.setMinimumSize(600, 400)
 
         self.central_widget = QWidget()
-        self.app_gui = None
 
         self.show_welcome_widget()
 
     def new_project(
         self,
     ):
+        self.central_widget = QWidget()
         new_project_widget = NewProjectWidget(self)
         new_project_widget.back_button.pressed.connect(self.show_welcome_widget)
         new_project_widget.project_created.connect(self.show_app_gui)
@@ -71,6 +73,7 @@ class MyApp(QMainWindow):
                 self.show_app_gui(anno_project)
 
     def show_welcome_widget(self):
+        self.app_gui = None
         welcome_widget = WelcomeWidget(self.settings["last_projects"])
         welcome_widget.new_button.clicked.connect(self.new_project)
         welcome_widget.load_button.clicked.connect(self.load_project)
@@ -100,6 +103,7 @@ class MyApp(QMainWindow):
         self.setWindowTitle(f"{TITLE} - {anno_project.name}")
 
         print(f"{TITLE} - {anno_project.name}")
+        self.central_widget = QWidget()
         self.app_gui = AppGui(anno_project, self)
         self.central_widget.setLayout(self.app_gui)
         self.setCentralWidget(self.central_widget)
@@ -142,6 +146,24 @@ class MyApp(QMainWindow):
     #         self.app_gui.image_view.update_scale()
 
     def closeEvent(self, event):
+        if self.app_gui:
+            if not self.app_gui.anno_project.is_saved():
+                yes_or_no_dialog = YesOrNoDialog(
+                    title="Unsaved changes",
+                    text="You have unsaved changes. Do you want to save?",
+                    window_title="Unsaved changes",
+                    cancel=True,
+                    widget=self,
+                )
+                result = yes_or_no_dialog.exec()
+
+                if result == QDialog.Accepted:
+                    self.app_gui.save_project()
+
+                elif result == QDialog.Rejected and yes_or_no_dialog.canceled:
+                    event.ignore()
+                    return
+
         self.settings["maximized"] = self.isMaximized()
         self.save_settings()
 

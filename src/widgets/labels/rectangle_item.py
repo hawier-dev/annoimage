@@ -38,15 +38,13 @@ class RectangleItem(QGraphicsRectItem):
         self.label_name = label_name
         self.label_name_id = label_name_id
 
-        self.min_handle_size = 1
-        self.max_handle_size = 40
+        self.min_handle_size = 2
+        self.max_handle_size = 5
 
         self.set_default_color()
         if not self.temporary:
             self.add_resize_handles()
             self.setAcceptHoverEvents(True)
-
-        self.setFlag(QGraphicsRectItem.ItemIsMovable)
 
     def to_dict(self):
         return {
@@ -130,15 +128,6 @@ class RectangleItem(QGraphicsRectItem):
         self.update_handlers()
         self.parent.update_labels()
 
-    def itemChange(self, change, value):
-        if change == QGraphicsItem.ItemSelectedChange:
-            if value:
-                self.bring_to_front()
-            else:
-                self.bring_to_back()
-
-        return super().itemChange(change, value)
-
     def set_hover_color(self):
         hover_brush = QBrush(QColor(255, 0, 0, 64))
 
@@ -150,14 +139,12 @@ class RectangleItem(QGraphicsRectItem):
     def hoverLeaveEvent(self, event):
         self.set_default_color()
 
-    def resize_started(self):
-        self.parent.movable_disable()
-        self.parent.resize_disable()
-
-    def resize_stopped(self):
-        self.parent.movable_enable()
-        self.parent.resize_enable()
-        self.parent.update_labels()
+    # def resize_started(self):
+    #     self.parent.movable_disable()
+    #     self.parent.resize_disable()
+    #
+    # def resize_stopped(self):
+    #     self.parent.set_mode(self.parent.current_mode)
 
     def add_resize_handles(self):
         handle_size = 5
@@ -185,16 +172,6 @@ class RectangleItem(QGraphicsRectItem):
                 self.rect().y() + y_offset * self.rect().height(),
             )
 
-    def bring_to_front(self):
-        self.setZValue(1)
-        for handle in self.resize_handles:
-            handle.setZValue(1)
-
-    def bring_to_back(self):
-        self.setZValue(0)
-        for handle in self.resize_handles:
-            handle.setZValue(0)
-
 
 class RectangleHandleItem(QGraphicsEllipseItem):
     def __init__(self, x, y, w, h, parent):
@@ -203,13 +180,12 @@ class RectangleHandleItem(QGraphicsEllipseItem):
         pen = QPen(QColor(0, 0, 0))
         pen.setWidth(0.5)
         pen.setStyle(Qt.SolidLine)
-        self.resizing = False
-
+        self.setAcceptHoverEvents(True)
         self.setPen(pen)
 
-    def mousePressEvent(self, event):
-        self.parent.resize_started()
-        super().mousePressEvent(event)
+    # def mousePressEvent(self, event):
+    #     self.parent.resize_started()
+        # QGraphicsEllipseItem.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
         x_offset, y_offset = self.data(0)
@@ -248,7 +224,7 @@ class RectangleHandleItem(QGraphicsEllipseItem):
         )
         # new_rect = QRectF(new_x, new_y, new_width, new_height)
         # self.parent.setRect(new_rect)
-        super().mouseMoveEvent(event)
+        QGraphicsEllipseItem.mouseMoveEvent(self, event)
         self.parent.update_handlers()
 
     def set_size(self, size):
@@ -257,6 +233,7 @@ class RectangleHandleItem(QGraphicsEllipseItem):
         """
         self.setRect(-size / 2, -size / 2, size, size)
 
-    def mouseReleaseEvent(self, event):
-        self.parent.resize_stopped()
-        super().mouseReleaseEvent(event)
+    # def mouseReleaseEvent(self, event):
+    #     self.parent.resize_stopped()
+    #     print("stop ")
+    #     QGraphicsEllipseItem.mouseReleaseEvent(self, event)

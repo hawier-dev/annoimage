@@ -15,7 +15,7 @@
 
 - **Export Annotations**: Export your annotations in multiple formats for compatibility with various ML models. 
 
-- **AI-Assisted Annotation** *(Coming soon)*: Leverage AI tools to accelerate the annotation process.
+- **AI-Assisted Annotation**: Leverage AI tools to accelerate the annotation process.
 
 ## Getting Started
 

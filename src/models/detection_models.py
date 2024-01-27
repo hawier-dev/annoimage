@@ -4,7 +4,15 @@ from src.utils.detection import detect_contours
 
 
 class DetectionTask:
-    def __init__(self, image, original_image_id, image_part_position, label_name, params=None, confidence_threshold=0.1):
+    def __init__(
+        self,
+        image,
+        original_image_id,
+        image_part_position,
+        label_name,
+        params=None,
+        confidence_threshold=0.1,
+    ):
         self.image = image
         self.original_image_id = original_image_id
         self.image_part_position = image_part_position

@@ -14,8 +14,8 @@ class PolygonItem(QGraphicsPolygonItem):
         self.label_name_id = label_name_id
         self.hovered = False
         self.resize_handles = []
-        self.min_handle_size = 1
-        self.max_handle_size = 40
+        self.min_handle_size = 2
+        self.max_handle_size = 5
 
         self.default_pen = QPen(QColor(255, 0, 0))
         self.default_pen.setWidth(0.1)
