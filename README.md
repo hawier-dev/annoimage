@@ -19,8 +19,7 @@
 
 ## Getting Started
 
-- [Installation Guide](./installation_guide.md)
-
+- [Installation Guide](https://github.com/hawier-dev/annoimage/wiki/Installation-guide)
 - [Creating your First Project Guide](./first_project_guide.md)
 
 - [Basic Annotation Guide](annotation_guide.md)
