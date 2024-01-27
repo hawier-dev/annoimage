@@ -4,7 +4,9 @@
 
 **AnnoImage** is an intuitive and efficient image annotation tool designed for object detection tasks. It offers a user-friendly and fast way to mark elements in images, essential for projects involving machine learning and computer vision.
 
-![AnnoImage](./screenshot.png)
+![AnnoImage](./screenshots/rect.gif)
+![AnnoImage](./screenshots/ai.gif)
+![AnnoImage](./screenshots/polygon.gif)
 *(Image used in screenshot is from [Unsplash](https://unsplash.com/photos/green-single-cab-pickup-truck-parked-beside-building-z8ym2XTZ0ig?utm_content=creditShareLink&utm_medium=referral&utm_source=unsplash))*
 
 ## Key Features

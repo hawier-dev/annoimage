@@ -170,7 +170,6 @@ class ImageView(QGraphicsView):
             if results[0] == "no_model_found":
                 error_dialog = ErrorDialog(
                     widget=self,
-
                     window_title="Error",
                     title="Error",
                     text="Model not found. Please download it.",
@@ -179,8 +178,8 @@ class ImageView(QGraphicsView):
                 error_dialog.exec()
                 return
 
-        except IndexError:
-            return
+        except:
+            pass
         offset_x, offset_y = task.image_part_position
         if results:
             for item in results:

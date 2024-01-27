@@ -52,9 +52,6 @@ class AppGui(QVBoxLayout):
         self.file_menu.addAction(self.exit_action)
 
         self.project_menu = self.menu_bar.addMenu("Project")
-        self.count_all_labels_action = QAction("Count all labels", self)
-        self.count_all_labels_action.triggered.connect(self.count_all_labels)
-        self.project_menu.addAction(self.count_all_labels_action)
         self.export_project_action = QAction("Export project", self)
         self.export_project_action.triggered.connect(self.export_project)
         self.project_menu.addAction(self.export_project_action)
